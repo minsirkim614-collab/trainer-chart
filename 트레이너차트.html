@@ -45,6 +45,9 @@ body{font-family:'Segoe UI','Malgun Gothic',sans-serif;background:#e8ecf0;color:
 #main.with-sub{margin-left:410px}
 #topbar{background:#ffffff;border-bottom:1px solid #e2e5ee;padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
 #topbar h1{font-size:18px;font-weight:700;color:#2d3561}
+#sync-status{font-size:12px;color:#6366f1;font-weight:600}
+#sync-btn{background:#eef2ff;color:#6366f1;border:1.5px solid #c7d2fe;border-radius:8px;padding:6px 13px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+#sync-btn:hover{background:#e0e7ff}
 #page{padding:24px}
 
 /* 카드 */
@@ -228,7 +231,11 @@ tbody tr{cursor:pointer}
 <div id="main">
   <div id="topbar">
     <h1 id="pg-title">대시보드</h1>
-    <button class="btn btn-blue" id="btn-add">+ 회원 추가</button>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="sync-status"></span>
+      <button id="sync-btn" onclick="loadFromSheets()">🔄 새로고침</button>
+      <button class="btn btn-blue" id="btn-add">+ 회원 추가</button>
+    </div>
   </div>
   <div id="page"></div>
 </div>
@@ -687,7 +694,40 @@ if(!DB.exercises) DB.exercises = [
   {name:'러닝머신',cat:'유산소'},{name:'사이클',cat:'유산소'},{name:'로잉머신',cat:'유산소'},{name:'버피',cat:'유산소'},{name:'줄넘기',cat:'유산소'},{name:'스텝박스',cat:'유산소'},
   {name:'햄스트링 스트레칭',cat:'스트레칭'},{name:'고관절 스트레칭',cat:'스트레칭'},{name:'어깨 스트레칭',cat:'스트레칭'},{name:'폼롤러',cat:'스트레칭'},
 ];
-const save = () => localStorage.setItem('tc2', JSON.stringify(DB));
+// ── Google Sheets 연동 ──────────────────────────────────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzmBbbPSh-j-rnR41jgmHAhU7Oh05t5JD1pRYUDYHWfevdeWYrmfz0dOoQe7XbJ7tbpdQ/exec';
+
+const save = async () => {
+  localStorage.setItem('tc2', JSON.stringify(DB)); // 로컬 백업
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save', payload: DB })
+    });
+  } catch(e) { console.warn('저장 실패:', e); }
+};
+
+async function loadFromSheets() {
+  try {
+    const res = await fetch(GAS_URL + '?action=load');
+    const text = await res.text();
+    if (text && text !== '[]' && text.startsWith('{')) {
+      const remote = JSON.parse(text);
+      DB = remote;
+      if(!DB.admin) DB.admin = {name:'트레이너', center:'', phone:'', email:'', memo:''};
+      if(!DB.orgs) DB.orgs = [];
+      if(!DB.exTypes) DB.exTypes = ['근력 트레이닝','유산소','스트레칭/이동성','체형 교정','재활','복합'];
+      if(!DB.groupSessions) DB.groupSessions = [];
+      if(!DB.events) DB.events = [];
+      localStorage.setItem('tc2', JSON.stringify(DB));
+      render();
+      document.getElementById('sync-status').textContent = '✅ 동기화 완료';
+      setTimeout(()=>{ document.getElementById('sync-status').textContent = ''; }, 2000);
+    }
+  } catch(e) { console.warn('불러오기 실패:', e); }
+}
 const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
 const find = id => DB.clients.find(c => c.id === id);
 
@@ -3318,6 +3358,9 @@ function delDiet(idx){ if(!confirm('삭제?'))return; find(curId).diets.splice(i
 
 // ── 시작 ──────────────────────────────────────────────────────
 render();
+// Google Sheets에서 최신 데이터 불러오기
+document.getElementById('sync-status').textContent = '⏳ 동기화 중...';
+loadFromSheets();
 </script>
 </body>
 </html>
