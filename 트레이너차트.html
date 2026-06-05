@@ -1,0 +1,3323 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>트레이너 차트</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','Malgun Gothic',sans-serif;background:#e8ecf0;color:#2d3561;display:flex;min-height:100vh}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#dde1e6}
+::-webkit-scrollbar-thumb{background:#b8bcc8;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#a0a4b8}
+
+/* 사이드바 */
+#sidebar{width:220px;background:#1e2140;color:#94a3b8;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;flex-shrink:0;box-shadow:4px 0 20px rgba(0,0,0,.25)}
+#sidebar .logo{padding:22px 20px;border-bottom:1px solid #2d3361;font-size:17px;font-weight:700;color:#fff}
+#sidebar .logo small{display:block;font-size:11px;color:#4a5480;font-weight:400;margin-top:3px}
+#sidebar nav{flex:1;padding:12px 0;overflow-y:auto}
+#sidebar nav a{display:flex;align-items:center;gap:10px;padding:11px 20px;font-size:14px;color:#94a3b8;text-decoration:none;border-left:3px solid transparent;cursor:pointer;transition:all .15s}
+#sidebar nav a:hover{background:#252848;color:#cbd5e1}
+#sidebar nav a.on{background:rgba(99,102,241,.15);color:#818cf8;border-left-color:#6366f1}
+#sidebar .ver{padding:14px 20px;font-size:11px;color:#2d3361;border-top:1px solid #2d3361}
+
+/* 서브 사이드바 */
+#sub-sidebar{width:190px;background:#252848;display:flex;flex-direction:column;position:fixed;top:0;left:220px;height:100vh;z-index:99;border-left:1px solid #2d3361;overflow-y:auto;transform:translateX(-100%);visibility:hidden;transition:transform .22s ease,visibility .22s}
+#sub-sidebar.on{transform:translateX(0);visibility:visible}
+#ssb-toggle-btn{position:fixed;top:50%;left:220px;transform:translateY(-50%);width:16px;height:48px;background:linear-gradient(180deg,#6366f1,#818cf8);border:none;border-radius:0 6px 6px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100;color:#fff;font-size:14px;padding:0;opacity:0;pointer-events:none;transition:left .22s ease,opacity .15s}
+#ssb-toggle-btn:hover{opacity:1!important}
+#ssb-toggle-btn.on{opacity:.85;pointer-events:auto}
+#sub-sidebar.on ~ #ssb-toggle-btn{left:410px}
+.ssb-head{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2d3361;flex-shrink:0}
+.ssb-head span{font-size:11px;font-weight:700;color:#4a5480;letter-spacing:0.06em;text-transform:uppercase}
+.ssb-head button{background:none;border:none;color:#4a5480;cursor:pointer;font-size:18px;line-height:1;padding:0;transition:color .15s}
+.ssb-head button:hover{color:#818cf8}
+.ssb-cat{padding:12px 16px 4px;font-size:10px;font-weight:700;color:#2d3361;letter-spacing:0.08em;text-transform:uppercase}
+.ssb-item{padding:8px 14px 8px 18px;font-size:13px;color:#94a3b8;cursor:pointer;transition:all .15s;border-left:3px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ssb-item:hover{background:#2d3168;color:#cbd5e1}
+.ssb-item.on{background:rgba(99,102,241,.2);color:#818cf8;border-left-color:#6366f1;font-weight:600}
+#sub-sidebar[data-type="measure"] .ssb-item.on{background:rgba(8,145,178,.15);color:#38bdf8;border-left-color:#0891b2}
+#sub-sidebar[data-type="admin"] .ssb-item.on{background:rgba(99,102,241,.2);color:#818cf8;border-left-color:#6366f1}
+
+/* 메인 */
+#main{margin-left:220px;flex:1;display:flex;flex-direction:column;transition:margin-left .22s ease}
+#main.with-sub{margin-left:410px}
+#topbar{background:#ffffff;border-bottom:1px solid #e2e5ee;padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+#topbar h1{font-size:18px;font-weight:700;color:#2d3561}
+#page{padding:24px}
+
+/* 카드 */
+.card{background:#ffffff;border-radius:14px;border:1px solid #e2e5ee;padding:20px;margin-bottom:20px}
+.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.card-title{font-size:15px;font-weight:700;color:#2d3561}
+
+/* 통계 */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.stat{background:#ffffff;border-radius:14px;border:1px solid #e2e5ee;padding:18px 20px}
+.stat .lbl{font-size:12px;color:#8892b0;margin-bottom:6px}
+.stat .val{font-size:28px;font-weight:700;color:#2d3561}
+.stat .ico{float:right;font-size:24px;margin-top:-2px}
+
+/* 버튼 */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+.btn-blue{background:#6366f1;color:#fff}.btn-blue:hover{background:#4f52d8}
+.btn-gray{background:#f1f3f8;color:#4a5268;border:1px solid #e2e5ee}.btn-gray:hover{background:#e8eaf2}
+.btn-red{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}.btn-red:hover{background:#fee2e2;color:#b91c1c}
+.btn-green{background:#f0fdf4;color:#059669;border:1px solid #bbf7d0}.btn-green:hover{background:#dcfce7}
+.btn-ghost{background:transparent;border:1.5px solid #6366f1;color:#6366f1}.btn-ghost:hover{background:#eef2ff;color:#4f52d8}
+.btn-sm{padding:5px 10px;font-size:12px}
+
+/* 배지 */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.b-green{background:#d1fae5;color:#065f46}
+.b-yellow{background:#fef3c7;color:#92400e}
+.b-gray{background:#f1f3f8;color:#6b7280}
+
+/* 아바타 */
+.av{width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.av-lg{width:64px;height:64px;font-size:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0}
+
+/* 테이블 */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 12px;font-size:12px;color:#8892b0;border-bottom:2px solid #e2e5ee;font-weight:600;white-space:nowrap}
+td{padding:12px;border-bottom:1px solid #f1f3f8;font-size:13px;vertical-align:middle;white-space:nowrap;color:#3d4575}
+tbody tr:hover td{background:#f8f9fc}
+tbody tr{cursor:pointer}
+
+/* 검색바 */
+.searchbar{display:flex;gap:10px;margin-bottom:16px}
+.searchbar input{flex:1;padding:9px 13px;border:1.5px solid #e2e5ee;border-radius:8px;font-size:13px;outline:none;font-family:inherit;background:#fff;color:#2d3561}
+.searchbar input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+
+/* 모달 */
+.overlay{display:none;position:fixed;inset:0;background:rgba(30,33,64,.35);z-index:300;justify-content:center;align-items:center;backdrop-filter:blur(4px)}
+.overlay.show{display:flex}
+.modal{background:#ffffff;border-radius:16px;border:1px solid #e2e5ee;width:660px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 20px 48px rgba(45,53,97,.15)}
+.modal.sm{width:500px}
+.modal.md{width:560px}
+.mhead{padding:20px 24px;border-bottom:1px solid #e2e5ee;display:flex;justify-content:space-between;align-items:center}
+.mhead h2{font-size:16px;font-weight:700;color:#2d3561}
+.mbody{padding:22px 24px}
+.mfoot{padding:14px 24px;border-top:1px solid #e2e5ee;display:flex;justify-content:flex-end;gap:8px}
+.xbtn{background:none;border:none;font-size:20px;cursor:pointer;color:#8892b0;line-height:1;padding:0;transition:color .15s}.xbtn:hover{color:#2d3561}
+
+/* 폼 */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.full{grid-column:span 2}
+.fg label{font-size:12px;font-weight:600;color:#8892b0}
+.fg input,.fg select,.fg textarea{padding:9px 11px;border:1.5px solid #e2e5ee;border-radius:8px;font-size:13px;outline:none;font-family:inherit;background:#fff;color:#2d3561}
+.fg select option{background:#fff;color:#2d3561}
+.fg textarea{resize:vertical}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.age-tag{font-size:12px;color:#6366f1;font-weight:600;height:16px;margin-top:2px}
+.fdiv{grid-column:span 2;border:none;border-top:1px solid #e2e5ee;margin:2px 0}
+.flbl{grid-column:span 2;font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.6px;padding-top:4px}
+
+/* 탭 */
+.tabs{display:flex;border-bottom:2px solid #e2e5ee;margin-bottom:18px}
+.tab{padding:9px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:#8892b0;border-bottom:2px solid transparent;margin-bottom:-2px;font-family:inherit;transition:color .15s}
+.tab.on{color:#6366f1;border-bottom-color:#6366f1}
+.pane{display:none}
+.pane.on{display:block}
+
+/* 측정/세션 */
+.s-card{border:1px solid #e2e5ee;border-radius:12px;padding:14px;margin-bottom:10px;background:#ffffff;transition:border-color .15s}
+.s-card:hover{border-color:#c7cadf}
+.s-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.s-ex{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.s-ex-row{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px dashed #e2e5ee;color:#8892b0}
+.s-ex-row:last-child{border:none}
+.s-note{background:#f8f9fc;border-radius:6px;padding:7px 10px;font-size:12px;color:#8892b0;margin-top:8px;border:1px solid #e2e5ee}
+
+/* 상세 헤더 */
+.dhead{background:#ffffff;border-radius:14px;border:1px solid #e2e5ee;padding:20px;display:flex;gap:16px;align-items:flex-start;margin-bottom:16px}
+.dinfo h2{font-size:20px;font-weight:700;color:#2d3561}
+.dinfo .sub{font-size:13px;color:#8892b0;margin-top:3px}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.chip{background:#f1f3f8;border-radius:7px;padding:5px 11px;font-size:12px;border:1px solid #e2e5ee;color:#6b7280}
+.chip b{font-weight:700;color:#2d3561}
+
+/* 진행 */
+.pbar{background:#e2e5ee;border-radius:99px;height:7px;overflow:hidden;margin-top:5px}
+.pfill{height:100%;border-radius:99px;background:linear-gradient(90deg,#6366f1,#818cf8)}
+
+/* 빈 화면 */
+.empty{text-align:center;padding:44px 20px;color:#b0b8cc}
+.empty .ei{font-size:40px;margin-bottom:10px}
+
+/* 달력 */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal-day-name{text-align:center;font-size:11px;font-weight:600;color:#8892b0;padding:6px 0}
+.cal-cell{min-height:76px;border:1px solid #e2e5ee;border-radius:8px;padding:6px;background:#ffffff;transition:border-color .15s}
+.cal-cell:hover{border-color:#c7cadf}
+.cal-cell.today{background:#eef2ff;border-color:#6366f1}
+.cal-num{font-size:12px;font-weight:500;margin-bottom:3px;color:#6b7280}
+.cal-dot{background:#eef2ff;color:#6366f1;border-radius:4px;font-size:10px;padding:1px 4px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* 알림 */
+.info-box{background:#eef2ff;color:#4338ca;border-left:3px solid #6366f1;border-radius:6px;padding:10px 13px;font-size:13px;margin-bottom:14px}
+
+/* 목록 칩 */
+.list-chip{display:inline-flex;align-items:center;gap:5px;background:#eef2ff;color:#4338ca;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;margin:3px 3px 3px 0;border:1px solid #c7d2fe}
+.list-chip button{background:none;border:none;cursor:pointer;color:#818cf8;font-size:13px;line-height:1;padding:0;font-weight:700;transition:color .1s}
+.list-chip button:hover{color:#ef4444}
+.list-chip.yellow{background:#fffbeb;color:#92400e;border-color:#fde68a}.list-chip.yellow button{color:#f59e0b}
+.add-row{display:flex;gap:8px;margin-top:10px}
+.add-row input{flex:1;padding:7px 11px;border:1.5px solid #e2e5ee;border-radius:8px;font-size:13px;outline:none;font-family:inherit;background:#fff;color:#2d3561}
+.add-row input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+
+/* 사이드바 카테고리 */
+#sidebar nav .nav-cat{padding:16px 20px 4px;font-size:11px;font-weight:600;color:#3d4580;letter-spacing:0.04em}
+#sidebar nav .nav-sep{border:none;border-top:1px solid #2d3361;margin:6px 14px}
+
+/* 관리자 바 */
+#admin-bar{padding:14px 16px;border-top:1px solid #2d3361;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .15s}
+#admin-bar:hover{background:#252848}
+#admin-bar .ab-info{flex:1;overflow:hidden}
+#admin-bar .ab-name{font-size:13px;font-weight:700;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#admin-bar .ab-role{font-size:11px;color:#3d4580}
+#admin-bar .ab-gear{font-size:14px;color:#3d4580}
+</style>
+</head>
+<body>
+<div id="sidebar">
+  <div class="logo">&#x1F4AA; TrainerChart<small>환자 관리 시스템</small></div>
+  <nav>
+    <a class="on" data-p="dashboard">&#x1F3E0; 대시보드</a>
+
+    <hr class="nav-sep">
+    <div class="nav-cat">회원 관리</div>
+    <a data-p="clients">&#x1F465; 회원 목록</a>
+    <a data-p="sessions">&#x1F3C3; 개인운동</a>
+    <a data-p="groups">&#x1F46F; 단체운동</a>
+
+    <hr class="nav-sep">
+    <div class="nav-cat">일정</div>
+    <a data-p="schedule">&#x1F4C5; 일정 관리</a>
+
+    <hr class="nav-sep">
+    <div class="nav-cat">메뉴얼</div>
+    <a data-p="measure-manual">&#x1F4CF; 측정 메뉴얼</a>
+    <a data-p="exercise-manual">&#x1F4D6; 운동 메뉴얼</a>
+
+    <hr class="nav-sep">
+    <a data-p="admin">&#x2699;&#xFE0F; 관리자 설정</a>
+  </nav>
+  <div id="admin-bar" onclick="nav('admin')" style="cursor:pointer">
+    <div class="av" style="background:#2563eb" id="sb-av">관</div>
+    <div class="ab-info">
+      <div class="ab-name" id="sb-name">트레이너</div>
+      <div class="ab-role">관리자</div>
+    </div>
+    <span class="ab-gear">&#x2699;</span>
+  </div>
+  <div class="ver">v2.0 · 로컬 저장</div>
+</div>
+
+<div id="sub-sidebar">
+  <div class="ssb-head">
+    <span id="ssb-title">메뉴얼</span>
+    <button id="ssb-add-btn" onclick="openManual('exercise')" title="항목 추가">+</button>
+  </div>
+  <div id="sub-sidebar-list"></div>
+</div>
+<button id="ssb-toggle-btn" onclick="toggleSsb()" title="메뉴 열기">&#x203A;</button>
+
+<div id="main">
+  <div id="topbar">
+    <h1 id="pg-title">대시보드</h1>
+    <button class="btn btn-blue" id="btn-add">+ 회원 추가</button>
+  </div>
+  <div id="page"></div>
+</div>
+
+<!-- 회원 추가/수정 모달 -->
+<div class="overlay" id="m-client">
+<div class="modal">
+  <div class="mhead"><h2 id="m-client-title">회원 추가</h2><button class="xbtn" data-close="m-client">&#x2715;</button></div>
+  <div class="mbody">
+    <div class="fgrid">
+      <div class="flbl">기본 정보</div>
+      <div class="fg"><label>이름 *</label><input id="c-name" type="text" placeholder="홍길동"></div>
+      <div class="fg">
+        <label>생년월일</label>
+        <input id="c-birth" type="date">
+        <div class="age-tag" id="c-age-tag"></div>
+      </div>
+      <div class="fg"><label>성별</label><select id="c-gender"><option value="">선택</option><option>남</option><option>여</option></select></div>
+      <div class="fg"><label>연락처</label><input id="c-phone" type="text" placeholder="010-0000-0000" maxlength="13"></div>
+      <div class="fg"><label>이메일</label><input id="c-email" type="email" placeholder="email@example.com"></div>
+      <div class="fg"><label>직업</label><input id="c-job" type="text" placeholder="직업"></div>
+      <div class="fg"><label>소속</label><select id="c-org"><option value="">선택 안 함</option></select></div>
+      <div class="fg"><label>등록일</label><input id="c-joindate" type="date"></div>
+      <div class="fg"><label>상태</label><select id="c-status"><option value="active">활성</option><option value="pause">일시정지</option><option value="end">종료</option></select></div>
+      <hr class="fdiv">
+      <div class="flbl">신체 초기 정보</div>
+      <div class="fg"><label>키 (cm)</label><input id="c-height" type="number" placeholder="170"></div>
+      <div class="fg"><label>몸무게 (kg)</label><input id="c-weight" type="number" step="0.1" placeholder="65.0"></div>
+      <div class="fg"><label>체지방률 (%)</label><input id="c-fat" type="number" step="0.1" placeholder="20.0"></div>
+      <div class="fg"><label>골격근량 (kg)</label><input id="c-muscle" type="number" step="0.1" placeholder="28.0"></div>
+      <hr class="fdiv">
+      <div class="flbl">건강 정보</div>
+      <div class="fg full"><label>운동 목표</label><input id="c-goal" type="text" placeholder="예: 체중 감량 10kg, 근력 향상"></div>
+      <div class="fg full"><label>기저질환 / 부상 이력</label><textarea id="c-health" rows="2" placeholder="예: 무릎 연골 손상, 고혈압"></textarea></div>
+      <div class="fg full"><label>메모</label><textarea id="c-memo" rows="2" placeholder="트레이너 메모..."></textarea></div>
+    </div>
+  </div>
+  <div class="mfoot">
+    <button class="btn btn-gray" data-close="m-client">취소</button>
+    <button class="btn btn-blue" id="btn-save-client">저장</button>
+  </div>
+</div>
+</div>
+
+<!-- 신체 측정 모달 -->
+<div class="overlay" id="m-measure">
+<div class="modal sm">
+  <div class="mhead"><h2 id="m-measure-title">신체 측정 기록</h2><button class="xbtn" data-close="m-measure">&#x2715;</button></div>
+  <div class="mbody">
+    <div class="fgrid">
+      <div class="fg full"><label>측정일 *</label><input id="me-date" type="date" style="max-width:180px"></div>
+      <div class="flbl">체성분</div>
+      <div class="fg"><label>몸무게 (kg)</label><input id="me-weight" type="number" step="0.1"></div>
+      <div class="fg"><label>체지방률 (%)</label><input id="me-fat" type="number" step="0.1"></div>
+      <div class="fg"><label>골격근량 (kg)</label><input id="me-muscle" type="number" step="0.1"></div>
+      <div class="fg"></div>
+      <div id="me-calc-wrap" class="fg full" style="display:none">
+        <div id="me-calc-box" style="background:#eff6ff;border-left:4px solid #2563eb;border-radius:8px;padding:11px 14px;font-size:12px"></div>
+      </div>
+      <hr class="fdiv">
+      <div class="flbl">둘레 측정</div>
+      <div class="fg"><label>허리 둘레 (cm)</label><input id="me-waist" type="number" step="0.1"></div>
+      <div class="fg"><label>가슴 둘레 (cm)</label><input id="me-chest" type="number" step="0.1"></div>
+      <div class="fg"><label>허벅지 둘레 (cm)</label><input id="me-thigh" type="number" step="0.1"></div>
+      <div class="fg"><label>팔 둘레 (cm)</label><input id="me-arm" type="number" step="0.1"></div>
+      <hr class="fdiv">
+      <div class="flbl">근력</div>
+      <div class="fg"><label>왼손 악력 (kg)</label><input id="me-grip-l" type="number" step="0.1" placeholder="왼손 악력"></div>
+      <div class="fg"><label>오른손 악력 (kg)</label><input id="me-grip-r" type="number" step="0.1" placeholder="오른손 악력"></div>
+      <div class="fg"><label>무릎 굽힘 근력 (kg)</label><input id="me-knee-flex" type="number" step="0.1" placeholder="굽힘 근력"></div>
+      <div class="fg"><label>무릎 폄 근력 (kg)</label><input id="me-knee-ext" type="number" step="0.1" placeholder="폄 근력"></div>
+      <hr class="fdiv">
+      <div class="flbl">반응속도</div>
+      <div class="fg"><label>개수 (개)</label><input id="me-sprint" type="number" step="1" placeholder="예: 20"></div>
+      <div class="fg"><label>반응시간 (초)</label><input id="me-agility" type="number" step="0.001" placeholder="예: 0.300"></div>
+      <hr class="fdiv">
+      <div class="flbl">한발서기</div>
+      <div class="fg"><label>왼발 (초)</label><input id="me-balance-l" type="number" step="0.1" placeholder="예: 30.0"></div>
+      <div class="fg"><label>오른발 (초)</label><input id="me-balance-r" type="number" step="0.1" placeholder="예: 30.0"></div>
+      <div class="fg full"><label>메모</label><textarea id="me-memo" rows="2"></textarea></div>
+    </div>
+  </div>
+  <div class="mfoot">
+    <button class="btn btn-gray" data-close="m-measure">취소</button>
+    <button class="btn btn-blue" id="btn-save-measure">저장</button>
+  </div>
+</div>
+</div>
+
+<!-- 일정 모달 -->
+<div class="overlay" id="m-event">
+<div class="modal sm">
+  <div class="mhead"><h2 id="m-event-title">일정 추가</h2><button class="xbtn" data-close="m-event">&#x2715;</button></div>
+  <div class="mbody">
+    <div class="fgrid">
+      <div class="fg"><label>날짜 *</label><input id="ev-date" type="date"></div>
+      <div class="fg"><label>시간</label><input id="ev-time" type="time"></div>
+      <div class="fg full"><label>제목 *</label><input id="ev-title" type="text" placeholder="일정 제목"></div>
+      <div class="fg full"><label>메모</label><textarea id="ev-memo" rows="3" placeholder="추가 메모..."></textarea></div>
+      <div class="fg full"><label style="margin-bottom:6px;display:block">색상</label><div id="ev-colors" style="display:flex;flex-wrap:wrap;gap:6px"></div></div>
+    </div>
+  </div>
+  <div class="mfoot">
+    <button class="btn btn-gray" data-close="m-event">취소</button>
+    <button class="btn btn-blue" id="btn-save-event">저장</button>
+  </div>
+</div>
+</div>
+
+<!-- 이미지 뷰어 -->
+<div id="img-viewer" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;align-items:center;justify-content:center;flex-direction:column" onclick="closeImgViewer()">
+  <button onclick="closeImgViewer()" style="position:absolute;top:18px;right:22px;background:none;border:none;color:#fff;font-size:28px;cursor:pointer;line-height:1">&#x2715;</button>
+  <button id="iv-prev" onclick="event.stopPropagation();imgViewerStep(-1)" style="position:absolute;left:18px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;font-size:28px;width:44px;height:44px;border-radius:50%;cursor:pointer;display:none">&#x2039;</button>
+  <img id="iv-img" src="" style="max-width:90vw;max-height:85vh;border-radius:8px;object-fit:contain">
+  <div id="iv-counter" style="color:#aaa;font-size:13px;margin-top:10px"></div>
+  <button id="iv-next" onclick="event.stopPropagation();imgViewerStep(1)" style="position:absolute;right:18px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;font-size:28px;width:44px;height:44px;border-radius:50%;cursor:pointer;display:none">&#x203A;</button>
+</div>
+
+<!-- 메뉴얼 항목 모달 -->
+<div class="overlay" id="m-manual">
+<div class="modal md">
+  <div class="mhead"><h2 id="m-manual-title">항목 추가</h2><button class="xbtn" data-close="m-manual">&#x2715;</button></div>
+  <div class="mbody">
+    <div class="fgrid">
+      <div class="fg full"><label>제목 *</label><input id="mm-title" type="text" placeholder="항목 제목"></div>
+      <div class="fg full"><label>분류</label><input id="mm-cat" type="text" placeholder="분류" list="mm-cat-list"><datalist id="mm-cat-list"></datalist></div>
+      <div class="fg full">
+        <label style="margin-bottom:6px;display:block">내용 구성</label>
+        <div id="mm-blocks" style="display:flex;flex-direction:column;gap:6px"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-gray btn-sm" onclick="mmAddTextBlock()">+ 텍스트</button>
+          <label for="mm-img-input" class="btn btn-gray btn-sm" style="cursor:pointer">+ 사진</label>
+          <input id="mm-img-input" type="file" accept="image/*" multiple style="display:none" onchange="mmAddImages(this)">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mfoot">
+    <button class="btn btn-gray" data-close="m-manual">취소</button>
+    <button class="btn btn-blue" id="btn-save-manual">저장</button>
+  </div>
+</div>
+</div>
+
+<!-- 식단 기록 모달 -->
+<div class="overlay" id="m-diet">
+<div class="modal">
+  <div class="mhead"><h2 id="m-diet-title">식단 기록</h2><button class="xbtn" data-close="m-diet">&#x2715;</button></div>
+  <div class="mbody">
+    <div class="fg" style="margin-bottom:18px;max-width:180px"><label>날짜 *</label><input id="di-date" type="date"></div>
+    <!-- 아침 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:12px;font-weight:700;color:#d97706">&#x1F305; 아침</div>
+      <button type="button" id="fp-am-btn" class="btn btn-gray btn-sm" style="font-size:11px" onclick="toggleFoodPicker('am')">+ 음식 선택</button>
+    </div>
+    <div id="fp-am" style="display:none;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;padding:10px;margin-bottom:8px">
+      <div id="fp-am-cats" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px"></div>
+      <div id="fp-am-foods" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+    </div>
+    <div id="di-am-chips" style="display:flex;flex-wrap:wrap;gap:5px;min-height:34px;padding:6px 8px;background:#fffbeb;border:1.5px dashed #fde68a;border-radius:8px;margin-bottom:6px;align-items:center"></div>
+    <div class="add-row" style="margin-bottom:8px;align-items:center">
+      <div style="position:relative;flex:1 1 140px">
+        <input id="fp-am-input" type="text" placeholder="음식명 입력" style="width:100%;box-sizing:border-box" oninput="showFoodSuggest('am')" onkeydown="handleFoodSuggestKey(event,'am')">
+        <div id="fp-am-suggest" style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;min-width:100%;background:#fff;border:1.5px solid #fde68a;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.13);z-index:200;max-height:160px;overflow-y:auto;white-space:nowrap"></div>
+      </div>
+      <input id="fp-am-qty" type="text" placeholder="수량" style="flex:0 0 70px;text-align:center" onkeydown="if(event.key==='Enter'){addFoodByInput('am');}">
+      <button class="btn btn-blue btn-sm" type="button" onclick="addFoodByInput('am')">추가</button>
+    </div>
+    <div class="fgrid" style="margin-bottom:14px">
+      <div class="fg"><label>칼로리 (kcal)</label><input id="di-am-kcal" type="number" placeholder="0"></div>
+      <div class="fg"><label>탄 / 단 / 지 (g)</label><div style="display:flex;gap:5px"><input id="di-am-carb" type="number" step="0.1" placeholder="탄"><input id="di-am-protein" type="number" step="0.1" placeholder="단"><input id="di-am-fat" type="number" step="0.1" placeholder="지"></div></div>
+    </div>
+    <hr style="border:none;border-top:1px solid #f3f4f6;margin:0 0 14px">
+    <!-- 점심 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:12px;font-weight:700;color:#059669">&#x2600;&#xFE0F; 점심</div>
+      <button type="button" id="fp-pm-btn" class="btn btn-gray btn-sm" style="font-size:11px" onclick="toggleFoodPicker('pm')">+ 음식 선택</button>
+    </div>
+    <div id="fp-pm" style="display:none;background:#ecfdf5;border:1.5px solid #6ee7b7;border-radius:8px;padding:10px;margin-bottom:8px">
+      <div id="fp-pm-cats" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px"></div>
+      <div id="fp-pm-foods" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+    </div>
+    <div id="di-pm-chips" style="display:flex;flex-wrap:wrap;gap:5px;min-height:34px;padding:6px 8px;background:#ecfdf5;border:1.5px dashed #6ee7b7;border-radius:8px;margin-bottom:6px;align-items:center"></div>
+    <div class="add-row" style="margin-bottom:8px;align-items:center">
+      <div style="position:relative;flex:1 1 140px">
+        <input id="fp-pm-input" type="text" placeholder="음식명 입력" style="width:100%;box-sizing:border-box" oninput="showFoodSuggest('pm')" onkeydown="handleFoodSuggestKey(event,'pm')">
+        <div id="fp-pm-suggest" style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;min-width:100%;background:#fff;border:1.5px solid #6ee7b7;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.13);z-index:200;max-height:160px;overflow-y:auto;white-space:nowrap"></div>
+      </div>
+      <input id="fp-pm-qty" type="text" placeholder="수량" style="flex:0 0 70px;text-align:center" onkeydown="if(event.key==='Enter'){addFoodByInput('pm');}">
+      <button class="btn btn-blue btn-sm" type="button" onclick="addFoodByInput('pm')">추가</button>
+    </div>
+    <div class="fgrid" style="margin-bottom:14px">
+      <div class="fg"><label>칼로리 (kcal)</label><input id="di-pm-kcal" type="number" placeholder="0"></div>
+      <div class="fg"><label>탄 / 단 / 지 (g)</label><div style="display:flex;gap:5px"><input id="di-pm-carb" type="number" step="0.1" placeholder="탄"><input id="di-pm-protein" type="number" step="0.1" placeholder="단"><input id="di-pm-fat" type="number" step="0.1" placeholder="지"></div></div>
+    </div>
+    <hr style="border:none;border-top:1px solid #f3f4f6;margin:0 0 14px">
+    <!-- 저녁 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:12px;font-weight:700;color:#7c3aed">&#x1F319; 저녁</div>
+      <button type="button" id="fp-ev-btn" class="btn btn-gray btn-sm" style="font-size:11px" onclick="toggleFoodPicker('ev')">+ 음식 선택</button>
+    </div>
+    <div id="fp-ev" style="display:none;background:#f5f3ff;border:1.5px solid #c4b5fd;border-radius:8px;padding:10px;margin-bottom:8px">
+      <div id="fp-ev-cats" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px"></div>
+      <div id="fp-ev-foods" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+    </div>
+    <div id="di-ev-chips" style="display:flex;flex-wrap:wrap;gap:5px;min-height:34px;padding:6px 8px;background:#f5f3ff;border:1.5px dashed #c4b5fd;border-radius:8px;margin-bottom:6px;align-items:center"></div>
+    <div class="add-row" style="margin-bottom:8px;align-items:center">
+      <div style="position:relative;flex:1 1 140px">
+        <input id="fp-ev-input" type="text" placeholder="음식명 입력" style="width:100%;box-sizing:border-box" oninput="showFoodSuggest('ev')" onkeydown="handleFoodSuggestKey(event,'ev')">
+        <div id="fp-ev-suggest" style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;min-width:100%;background:#fff;border:1.5px solid #c4b5fd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.13);z-index:200;max-height:160px;overflow-y:auto;white-space:nowrap"></div>
+      </div>
+      <input id="fp-ev-qty" type="text" placeholder="수량" style="flex:0 0 70px;text-align:center" onkeydown="if(event.key==='Enter'){addFoodByInput('ev');}">
+      <button class="btn btn-blue btn-sm" type="button" onclick="addFoodByInput('ev')">추가</button>
+    </div>
+    <div class="fgrid" style="margin-bottom:14px">
+      <div class="fg"><label>칼로리 (kcal)</label><input id="di-ev-kcal" type="number" placeholder="0"></div>
+      <div class="fg"><label>탄 / 단 / 지 (g)</label><div style="display:flex;gap:5px"><input id="di-ev-carb" type="number" step="0.1" placeholder="탄"><input id="di-ev-protein" type="number" step="0.1" placeholder="단"><input id="di-ev-fat" type="number" step="0.1" placeholder="지"></div></div>
+    </div>
+    <hr style="border:none;border-top:1px solid #f3f4f6;margin:0 0 14px">
+    <!-- 간식 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:12px;font-weight:700;color:#b45309">&#x1F36A; 간식</div>
+      <button type="button" id="fp-sn-btn" class="btn btn-gray btn-sm" style="font-size:11px" onclick="toggleFoodPicker('sn')">+ 음식 선택</button>
+    </div>
+    <div id="fp-sn" style="display:none;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;padding:10px;margin-bottom:8px">
+      <div id="fp-sn-cats" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px"></div>
+      <div id="fp-sn-foods" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+    </div>
+    <div id="di-sn-chips" style="display:flex;flex-wrap:wrap;gap:5px;min-height:34px;padding:6px 8px;background:#fff7ed;border:1.5px dashed #fed7aa;border-radius:8px;margin-bottom:6px;align-items:center"></div>
+    <div class="add-row" style="margin-bottom:8px;align-items:center">
+      <div style="position:relative;flex:1 1 140px">
+        <input id="fp-sn-input" type="text" placeholder="음식명 입력" style="width:100%;box-sizing:border-box" oninput="showFoodSuggest('sn')" onkeydown="handleFoodSuggestKey(event,'sn')">
+        <div id="fp-sn-suggest" style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;min-width:100%;background:#fff;border:1.5px solid #fed7aa;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.13);z-index:200;max-height:160px;overflow-y:auto;white-space:nowrap"></div>
+      </div>
+      <input id="fp-sn-qty" type="text" placeholder="수량" style="flex:0 0 70px;text-align:center" onkeydown="if(event.key==='Enter'){addFoodByInput('sn');}">
+      <button class="btn btn-blue btn-sm" type="button" onclick="addFoodByInput('sn')">추가</button>
+    </div>
+    <div class="fgrid" style="margin-bottom:14px">
+      <div class="fg"><label>칼로리 (kcal)</label><input id="di-sn-kcal" type="number" placeholder="0"></div>
+      <div class="fg"><label>탄 / 단 / 지 (g)</label><div style="display:flex;gap:5px"><input id="di-sn-carb" type="number" step="0.1" placeholder="탄"><input id="di-sn-protein" type="number" step="0.1" placeholder="단"><input id="di-sn-fat" type="number" step="0.1" placeholder="지"></div></div>
+    </div>
+    <div class="fg"><label>메모</label><textarea id="di-memo" rows="2" placeholder="오늘 컨디션, 특이사항..."></textarea></div>
+  </div>
+  <div class="mfoot">
+    <button class="btn btn-gray" data-close="m-diet">취소</button>
+    <button class="btn btn-blue" id="btn-save-diet">저장</button>
+  </div>
+</div>
+</div>
+
+<!-- 측정 상세 추이 모달 -->
+<div class="overlay" id="m-detail-chart">
+<div class="modal">
+  <div class="mhead"><h2 id="m-detail-title">변화 추이</h2><button class="xbtn" data-close="m-detail-chart">&#x2715;</button></div>
+  <div class="mbody" id="m-detail-body"></div>
+  <div class="mfoot"><button class="btn btn-gray" data-close="m-detail-chart">닫기</button></div>
+</div>
+</div>
+
+<!-- 세션 모달 -->
+<div class="overlay" id="m-session">
+<div class="modal md">
+  <div class="mhead"><h2 id="m-session-title">세션 기록</h2><button class="xbtn" data-close="m-session">&#x2715;</button></div>
+  <div class="mbody">
+    <div class="fgrid">
+      <div class="fg"><label>날짜 *</label><input id="se-date" type="date"></div>
+      <div class="fg"><label>유형</label><select id="se-type"></select></div>
+      <div class="fg"><label>시간 (분)</label><input id="se-dur" type="number" placeholder="60"></div>
+      <div class="fg"><label>강도</label><select id="se-int"><option>저강도</option><option selected>중강도</option><option>고강도</option></select></div>
+      <div class="fg full">
+        <label>운동 목록</label>
+        <div id="se-ex-chips" style="min-height:38px;display:flex;flex-wrap:wrap;gap:4px;padding:8px;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:8px;margin-bottom:6px;align-items:center"></div>
+        <button type="button" id="ep-session-btn" class="btn btn-gray btn-sm" style="font-size:11px;margin-bottom:6px;width:100%" onclick="toggleExPicker('session')">+ 운동 선택</button>
+        <div id="ep-session" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:10px;margin-bottom:8px">
+          <div id="ep-session-cats" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px"></div>
+          <div id="ep-session-exs" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+        </div>
+        <div class="add-row" style="flex-wrap:wrap;align-items:center">
+          <input id="se-ex-name" type="text" placeholder="종목명" style="flex:1 1 120px" onkeydown="if(event.key==='Enter'){document.getElementById('se-ex-sets').focus();}">
+          <input id="se-ex-sets" type="number" min="1" max="99" placeholder="세트" style="flex:0 0 54px;text-align:center" onkeydown="if(event.key==='Enter'){document.getElementById('se-ex-reps').focus();}">
+          <span style="color:#9ca3af;font-size:13px;flex-shrink:0">×</span>
+          <input id="se-ex-reps" type="number" min="1" max="999" placeholder="횟수" style="flex:0 0 54px;text-align:center" onkeydown="if(event.key==='Enter'){document.getElementById('se-ex-weight').focus();}">
+          <input id="se-ex-weight" type="number" min="0" max="9999" step="0.5" placeholder="kg" style="flex:0 0 60px;text-align:center" onkeydown="if(event.key==='Enter'){addSessionExercise();}">
+          <button class="btn btn-blue btn-sm" type="button" onclick="addSessionExercise()">추가</button>
+        </div>
+      </div>
+      <div class="fg full"><label>메모</label><textarea id="se-note" rows="3" placeholder="오늘 컨디션, 특이사항..."></textarea></div>
+    </div>
+  </div>
+  <div class="mfoot">
+    <button class="btn btn-gray" data-close="m-session">취소</button>
+    <button class="btn btn-blue" id="btn-save-session">저장</button>
+  </div>
+</div>
+</div>
+<!-- 단체운동 모달 -->
+<div class="overlay" id="m-group">
+<div class="modal md">
+  <div class="mhead"><h2 id="m-group-title">단체운동 기록</h2><button class="xbtn" data-close="m-group">&#x2715;</button></div>
+  <div class="mbody">
+    <div class="fgrid">
+      <div class="fg"><label>날짜 *</label><input id="gr-date" type="date"></div>
+      <div class="fg"><label>수업명</label><input id="gr-name" type="text" placeholder="예: 아침 요가, GX 클래스"></div>
+      <div class="fg"><label>유형</label><select id="gr-type"></select></div>
+      <div class="fg"><label>시간 (분)</label><input id="gr-dur" type="number" placeholder="60"></div>
+      <div class="fg full"><label>메모</label><textarea id="gr-note" rows="2" placeholder="오늘 수업 내용, 특이사항..."></textarea></div>
+    </div>
+    <div style="margin-top:16px">
+      <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px">&#x1F465; 참가 회원</div>
+      <div id="gr-members" style="display:flex;flex-wrap:wrap;gap:6px;min-height:36px;padding:8px;background:#f9fafb;border-radius:8px;border:1.5px solid #e5e7eb"></div>
+    </div>
+  </div>
+  <div class="mfoot">
+    <button class="btn btn-gray" data-close="m-group">취소</button>
+    <button class="btn btn-blue" id="btn-save-group">저장</button>
+  </div>
+</div>
+</div>
+
+<!-- 주차 계획 모달 -->
+<div class="overlay" id="m-week-plan">
+<div class="modal sm">
+  <div class="mhead"><h2 id="m-week-plan-title">주차 계획 추가</h2><button class="xbtn" data-close="m-week-plan">&#x2715;</button></div>
+  <div class="mbody">
+    <div class="fgrid">
+      <div class="fg"><label>주차 *</label><input id="wp-week" type="number" min="1" placeholder="1"></div>
+      <div class="fg"><label>주차 목표 / 포커스</label><input id="wp-focus" type="text" placeholder="예: 하체 강화, 코어"></div>
+      <div class="fg"><label>시작일</label><input id="wp-start" type="date"></div>
+      <div class="fg"><label>종료일</label><input id="wp-end" type="date"></div>
+      <div class="fg full">
+        <label>운동 계획</label>
+        <div id="wp-ex-chips" style="min-height:38px;display:flex;flex-direction:column;gap:4px;padding:6px;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:8px;margin-bottom:6px"></div>
+        <button type="button" id="ep-weekplan-btn" class="btn btn-gray btn-sm" style="font-size:11px;margin-bottom:6px;width:100%" onclick="toggleExPicker('weekplan')">+ 운동 선택</button>
+        <div id="ep-weekplan" style="display:none;background:#f5f3ff;border:1.5px solid #c4b5fd;border-radius:8px;padding:10px;margin-bottom:8px">
+          <div id="ep-weekplan-cats" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px"></div>
+          <div id="ep-weekplan-exs" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+        </div>
+        <div class="add-row" style="flex-wrap:wrap;align-items:center">
+          <div style="position:relative;flex:1 1 120px">
+            <input id="wp-ex-name" type="text" placeholder="종목명" style="width:100%;box-sizing:border-box" oninput="showExSuggest('wp')" onkeydown="handleExSuggestKey(event,'wp')">
+            <div id="wp-ex-suggest" style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;min-width:100%;background:#fff;border:1.5px solid #c4b5fd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.13);z-index:200;max-height:180px;overflow-y:auto;white-space:nowrap"></div>
+          </div>
+          <input id="wp-ex-sets" type="number" min="1" max="99" placeholder="세트" style="flex:0 0 54px;text-align:center" onkeydown="if(event.key==='Enter'){document.getElementById('wp-ex-reps').focus();}">
+          <span style="color:#9ca3af;font-size:13px;flex-shrink:0">×</span>
+          <input id="wp-ex-reps" type="number" min="1" max="999" placeholder="횟수" style="flex:0 0 54px;text-align:center" onkeydown="if(event.key==='Enter'){document.getElementById('wp-ex-weight').focus();}">
+          <input id="wp-ex-weight" type="number" min="0" max="9999" step="0.5" placeholder="kg" style="flex:0 0 60px;text-align:center" onkeydown="if(event.key==='Enter'){document.getElementById('wp-ex-mins').focus();}">
+          <input id="wp-ex-mins" type="number" min="1" max="999" placeholder="분" style="flex:0 0 54px;text-align:center" onkeydown="if(event.key==='Enter'){addWeekPlanExercise();}">
+          <button class="btn btn-blue btn-sm" type="button" onclick="addWeekPlanExercise()">추가</button>
+        </div>
+      </div>
+      <div class="fg full"><label>메모</label><textarea id="wp-memo" rows="2" placeholder="주차 특이사항, 주의사항..."></textarea></div>
+    </div>
+  </div>
+  <div class="mfoot">
+    <button class="btn btn-gray" data-close="m-week-plan">취소</button>
+    <button class="btn btn-blue" id="btn-save-week-plan">저장</button>
+  </div>
+</div>
+</div>
+
+<!-- 세션 기록 모달 -->
+<div class="overlay" id="m-session-log">
+<div class="modal sm">
+  <div class="mhead"><h2 id="m-session-log-title">세션 기록 추가</h2><button class="xbtn" data-close="m-session-log">&#x2715;</button></div>
+  <div class="mbody">
+    <div class="fgrid">
+      <div class="fg"><label>시작일 *</label><input id="sl-date" type="date"></div>
+      <div class="fg"><label>종료일</label><input id="sl-end" type="date"></div>
+      <div class="fg"><label>주차</label><input id="sl-week" type="number" min="1" placeholder="1"></div>
+      <div class="fg"></div>
+      <div class="fg full">
+        <label>출석 체크</label>
+        <div id="sl-members" style="display:flex;flex-wrap:wrap;gap:6px;min-height:36px;padding:8px;background:#f9fafb;border-radius:8px;border:1.5px solid #e5e7eb"></div>
+      </div>
+      <div class="fg full">
+        <label>실제 진행 운동</label>
+        <div id="sl-actual-chips" style="min-height:38px;display:flex;flex-direction:column;gap:4px;padding:6px;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:8px;margin-bottom:6px"></div>
+        <button type="button" id="ep-sessionlog-btn" class="btn btn-gray btn-sm" style="font-size:11px;margin-bottom:6px;width:100%" onclick="toggleExPicker('sessionlog')">+ 운동 선택</button>
+        <div id="ep-sessionlog" style="display:none;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;padding:10px;margin-bottom:8px">
+          <div id="ep-sessionlog-cats" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px"></div>
+          <div id="ep-sessionlog-exs" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+        </div>
+        <div class="add-row" style="flex-wrap:wrap;align-items:center">
+          <div style="position:relative;flex:1 1 120px">
+            <input id="sl-ex-name" type="text" placeholder="종목명" style="width:100%;box-sizing:border-box" oninput="showExSuggest('sl')" onkeydown="handleExSuggestKey(event,'sl')">
+            <div id="sl-ex-suggest" style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;min-width:100%;background:#fff;border:1.5px solid #fed7aa;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.13);z-index:200;max-height:180px;overflow-y:auto;white-space:nowrap"></div>
+          </div>
+          <input id="sl-ex-sets" type="number" min="1" max="99" placeholder="세트" style="flex:0 0 54px;text-align:center" onkeydown="if(event.key==='Enter'){document.getElementById('sl-ex-reps').focus();}">
+          <span style="color:#9ca3af;font-size:13px;flex-shrink:0">×</span>
+          <input id="sl-ex-reps" type="number" min="1" max="999" placeholder="횟수" style="flex:0 0 54px;text-align:center" onkeydown="if(event.key==='Enter'){document.getElementById('sl-ex-weight').focus();}">
+          <input id="sl-ex-weight" type="number" min="0" max="9999" step="0.5" placeholder="kg" style="flex:0 0 60px;text-align:center" onkeydown="if(event.key==='Enter'){document.getElementById('sl-ex-mins').focus();}">
+          <input id="sl-ex-mins" type="number" min="1" max="999" placeholder="분" style="flex:0 0 54px;text-align:center" onkeydown="if(event.key==='Enter'){addSessionLogExercise();}">
+          <button class="btn btn-blue btn-sm" type="button" onclick="addSessionLogExercise()">추가</button>
+        </div>
+      </div>
+      <div class="fg full"><label>메모</label><textarea id="sl-note" rows="2" placeholder="컨디션, 특이사항, 참가자 반응..."></textarea></div>
+    </div>
+  </div>
+  <div class="mfoot">
+    <button class="btn btn-gray" data-close="m-session-log">취소</button>
+    <button class="btn btn-blue" id="btn-save-session-log">저장</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ── DB ──────────────────────────────────────────────────────
+let DB = JSON.parse(localStorage.getItem('tc2') || '{"clients":[]}');
+if(!DB.admin) DB.admin = {name:'트레이너', center:'', phone:'', email:'', memo:''};
+if(!DB.orgs) DB.orgs = [];
+if(!DB.exTypes) DB.exTypes = ['근력 트레이닝','유산소','스트레칭/이동성','체형 교정','재활','복합'];
+if(!DB.groupSessions) DB.groupSessions = [];
+if(!DB.events) DB.events = [];
+if(!DB.foods) DB.foods = [
+  {name:'현미밥',cat:'밥류'},{name:'잡곡밥',cat:'밥류'},{name:'흰쌀밥',cat:'밥류'},{name:'오트밀',cat:'밥류'},{name:'고구마밥',cat:'밥류'},
+  {name:'된장찌개',cat:'국물류'},{name:'김치찌개',cat:'국물류'},{name:'미역국',cat:'국물류'},{name:'콩나물국',cat:'국물류'},{name:'육개장',cat:'국물류'},
+  {name:'닭가슴살',cat:'고기류'},{name:'삼겹살',cat:'고기류'},{name:'소고기',cat:'고기류'},{name:'연어',cat:'고기류'},{name:'참치캔',cat:'고기류'},{name:'달걀',cat:'고기류'},
+  {name:'두부',cat:'단백질류'},{name:'그릭요거트',cat:'단백질류'},{name:'단백질쉐이크',cat:'단백질류'},{name:'견과류',cat:'단백질류'},
+  {name:'샐러드',cat:'채소류'},{name:'브로콜리',cat:'채소류'},{name:'시금치',cat:'채소류'},{name:'오이',cat:'채소류'},{name:'토마토',cat:'채소류'},
+  {name:'바나나',cat:'과일류'},{name:'사과',cat:'과일류'},{name:'블루베리',cat:'과일류'},{name:'딸기',cat:'과일류'},
+  {name:'고구마',cat:'탄수화물'},{name:'감자',cat:'탄수화물'},{name:'통밀빵',cat:'탄수화물'},{name:'퀴노아',cat:'탄수화물'},
+];
+if(!DB.measureManual||!DB.measureManual.length) DB.measureManual = [
+  {id:'mm1',title:'BMI (체질량지수)',cat:'체성분',content:'측정 방법\n· 체중(kg) ÷ 키(m)²\n· 예: 70kg / (1.75 × 1.75) = 22.9\n\n한국인 기준\n· 18.5 미만 → 저체중\n· 18.5 ~ 22.9 → 정상\n· 23 ~ 24.9 → 과체중\n· 25 ~ 29.9 → 비만\n· 30 이상 → 고도비만\n\n주의사항\n· 근육량이 많은 경우 BMI가 높게 나올 수 있음\n· 체지방률과 함께 종합적으로 평가'},
+  {id:'mm2',title:'체지방률',cat:'체성분',content:'측정 방법\n· InBody 등 생체전기저항 분석(BIA) 기기 사용\n· 측정 전 2시간 금식, 격한 운동 자제\n· 공복 시, 동일 시간대에 측정 권장\n\n정상 범위 (체지방률 %)\n         남성       여성\n저체중  5~10%    10~15%\n정상    10~20%   18~28%\n과체중  20~25%   28~33%\n비만    25% 이상  33% 이상\n\n측정 시 주의\n· 생리 중, 부종이 있을 때는 측정값 오차 가능\n· 동일 조건에서 반복 측정해 변화 추이 확인'},
+  {id:'mm3',title:'골격근량',cat:'체성분',content:'측정 방법\n· InBody 기기로 측정 (SMM: Skeletal Muscle Mass)\n· 단위: kg\n\n정상 범위 (골격근량 kg)\n  남성: 체중 × 0.38 내외 (약 33~35kg)\n  여성: 체중 × 0.30 내외 (약 22~25kg)\n\n해석\n· 골격근량이 높을수록 기초대사량 증가\n· 근손실 방지를 위해 단백질 섭취 + 근력 운동 병행\n· 다이어트 중 골격근량 유지 여부 모니터링 중요'},
+  {id:'mm4',title:'기초대사량 (BMR)',cat:'체성분',content:'계산 공식 (Mifflin-St Jeor)\n남성: (10 × 체중) + (6.25 × 키) - (5 × 나이) + 5\n여성: (10 × 체중) + (6.25 × 키) - (5 × 나이) - 161\n\n활동 계수별 일일 칼로리 필요량\n· 비활동적 (거의 운동 안 함): BMR × 1.2\n· 가벼운 활동 (주 1~3회): BMR × 1.375\n· 보통 활동 (주 3~5회): BMR × 1.55\n· 활발한 활동 (주 6~7회): BMR × 1.725\n· 매우 활발 (하루 2회 운동): BMR × 1.9\n\n활용\n· 체중 감량: 일일 필요량보다 300~500kcal 적게\n· 체중 증량: 일일 필요량보다 300~500kcal 많게'},
+  {id:'mm5',title:'허리둘레',cat:'둘레측정',content:'측정 방법\n· 배꼽 위 가장 가는 부위에 줄자를 수평으로 감음\n· 숨을 편안히 내쉰 상태에서 측정\n· 줄자가 피부에 닿되 조이지 않도록\n\n정상 기준 (복부비만 진단)\n· 남성: 90cm 미만\n· 여성: 85cm 미만\n\n측정 시 유의\n· 매번 동일한 위치에서 측정\n· 아침 기상 직후 또는 식전 측정 권장'},
+  {id:'mm6',title:'가슴둘레',cat:'둘레측정',content:'측정 방법\n· 남성: 유두 라인 높이에서 수평으로 측정\n· 여성: 겨드랑이 아래 가장 넓은 부위 측정\n· 팔을 내린 상태, 자연스럽게 호흡하며 측정\n\n기록 목적\n· 상체 근육 발달 및 체형 변화 추적\n· 체중 변화 없이 가슴둘레가 증가하면 근육 성장 확인'},
+  {id:'mm7',title:'팔 둘레',cat:'둘레측정',content:'측정 방법\n· 팔을 자연스럽게 내린 상태에서 위팔(상완) 가장 굵은 부위 측정\n· 왼팔 / 오른팔 각각 기록\n· 힘을 뺀 이완 상태에서 측정\n\n기록 목적\n· 상지 근육량 변화 추적\n· 양팔 차이(1cm 이상)가 있으면 좌우 불균형 확인 필요'},
+  {id:'mm8',title:'악력 (양손 악력)',cat:'근력',content:'측정 방법\n· 악력계(Hand Dynamometer) 사용\n· 똑바로 선 자세에서 팔을 몸통 옆에 자연스럽게 내림\n· 악력계를 꽉 쥐어 최대 힘으로 3초간 유지\n· 왼손·오른손 각각 2~3회 측정 후 최대값 기록\n· 측정 중 팔꿈치 구부리거나 몸을 기울이지 않도록\n\n정상 기준 (20~40대)\n         남성       여성\n우수    50kg 이상  35kg 이상\n정상    40~50kg   25~35kg\n주의    40kg 미만  25kg 미만\n\n주의사항\n· 손목·관절 통증 시 측정 제한\n· 측정 직전 과도한 운동 자제\n· 동일 시간대, 동일 조건에서 반복 측정'},
+  {id:'mm9',title:'무릎 굽힘·폄 근력',cat:'근력',content:'측정 방법\n· 레그 컬 기기(굽힘) / 레그 익스텐션 기기(폄) 이용\n· 좌식 자세에서 무릎을 90° 굽힌 상태에서 시작\n· 최대 힘으로 1회 반복 가능한 무게(kg) 기록\n· 왼쪽·오른쪽 각각 측정\n\n정상 비율 (굽힘 : 폄)\n· 정상: 굽힘이 폄의 50~70% 수준\n· 굽힘이 폄의 50% 미만 → 햄스트링 약화 의심\n\n좌우 불균형 기준\n· 좌우 차이 10% 이내 → 정상\n· 10~20% → 주의 (강화 프로그램 권장)\n· 20% 초과 → 재활 전문가 상담 필요\n\n주의사항\n· 무릎 통증·부상 시 측정 제한\n· 측정 전 충분한 워밍업 (5분 이상)'},
+  {id:'mm10',title:'반응속도 (개수)',cat:'반응속도',content:'측정 방법\n· 제자리 빠르게 달리기, 버피, 점프 등 특정 동작의 단위 시간당 횟수 측정\n· 30초 또는 1분 기준으로 기록\n\n예시 프로토콜\n· 제자리 달리기: 30초간 무릎 들어올리기 횟수\n· 버피: 1분간 반복 횟수\n· 측면 스텝: 30초간 왕복 횟수\n\n기록 방법\n· 동일 동작, 동일 시간으로 매번 측정\n· 컨디션에 따른 오차를 줄이기 위해 2회 측정 후 평균'},
+  {id:'mm11',title:'반응시간',cat:'반응속도',content:'측정 방법\n· 눈 또는 청각 자극에 반응하는 시간 측정 (단위: 초)\n· 자 낙하 테스트 또는 반응 측정 앱 활용\n\n자 낙하 테스트 방법\n1. 30cm 자를 엄지와 검지 사이에 수직으로 준비\n2. 트레이너가 예고 없이 자를 놓음\n3. 가능한 빨리 잡아 잡힌 위치(cm)를 기록\n4. 3회 측정 후 평균\n\n기준값 (성인 평균)\n· 우수: 10cm 이내\n· 보통: 10~20cm\n· 주의: 20cm 이상'},
+];
+if(!DB.exerciseManual||!DB.exerciseManual.length) DB.exerciseManual = [
+  {id:'em1',title:'스쿼트',cat:'하체',content:'주요 근육\n· 대퇴사두근, 대둔근, 햄스트링, 코어\n\n올바른 자세\n· 발 너비: 어깨너비 또는 약간 넓게\n· 발 방향: 10~30° 외회전\n· 무릎이 발끝 방향과 일치하도록\n· 엉덩이를 뒤로 빼며 앉기\n· 등 허리 자연 곡선 유지, 시선 정면\n· 무릎이 발 앞으로 너무 나오지 않도록\n\n흔한 실수\n· 무릎이 안쪽으로 무너짐 (Knee Cave)\n· 허리 굽힘 (척추 굴곡)\n· 발뒤꿈치 들림\n\n추천 세트/횟수\n· 근력: 4~5세트 × 4~6회 (고중량)\n· 근비대: 3~4세트 × 8~12회\n· 근지구력: 3세트 × 15~20회'},
+  {id:'em2',title:'데드리프트',cat:'하체',content:'주요 근육\n· 척추기립근, 햄스트링, 대둔근, 승모근, 광배근\n\n올바른 자세\n· 발 너비: 골반 너비\n· 바벨을 정강이에 가깝게 위치\n· 등 허리를 곧게 편 상태에서 힘 주기\n· 힙 힌지(엉덩이 경첩) 동작으로 들어올리기\n· 바벨이 몸에 밀착된 상태로 이동\n· 정상에서 엉덩이를 앞으로 밀어 잠금\n\n흔한 실수\n· 허리 굽힘 (척추 굴곡)\n· 바벨이 몸에서 떨어짐\n· 무릎을 먼저 펴는 동작\n\n추천 세트/횟수\n· 근력: 4~5세트 × 3~5회\n· 근비대: 3~4세트 × 6~10회'},
+  {id:'em3',title:'런지',cat:'하체',content:'주요 근육\n· 대퇴사두근, 대둔근, 햄스트링, 코어\n\n올바른 자세\n· 한 발을 크게 앞으로 내딛기\n· 앞 무릎이 발끝을 넘지 않도록\n· 뒤 무릎이 바닥에 거의 닿을 때까지 내리기\n· 상체는 수직 유지\n· 앞발 뒤꿈치로 밀어 올라오기\n\n변형 동작\n· 워킹 런지: 앞으로 이동하며 반복\n· 리버스 런지: 뒤로 내딛기 (무릎 부담 감소)\n· 불가리안 스플릿 스쿼트: 뒷발을 벤치에 올림\n\n추천 세트/횟수\n· 3~4세트 × 각 다리 10~15회'},
+  {id:'em4',title:'힙 브릿지 / 힙 쓰러스트',cat:'하체',content:'주요 근육\n· 대둔근(주), 햄스트링, 코어\n\n힙 브릿지 자세 (바닥)\n· 등을 바닥에 대고 무릎 굽혀 발 세우기\n· 발은 엉덩이에서 한 발 거리\n· 엉덩이를 수축하며 골반을 천장으로 올리기\n· 최상단에서 1~2초 유지 후 천천히 내리기\n\n힙 쓰러스트 (벤치 활용)\n· 등 위쪽을 벤치에 지지\n· 바벨을 골반 위에 올리고 동작 수행\n\n추천 세트/횟수\n· 근비대: 3~4세트 × 10~15회\n· 활성화: 2~3세트 × 15~20회'},
+  {id:'em5',title:'벤치프레스',cat:'상체',content:'주요 근육\n· 대흉근(주), 삼두근, 전면 삼각근\n\n올바른 자세\n· 등이 벤치에 닿고 발이 바닥에 닿도록\n· 그립 너비: 어깨너비보다 약간 넓게\n· 바벨을 가슴 하부(젖꼭지 라인)로 내리기\n· 팔꿈치 각도 45~75° (너무 벌리지 않기)\n· 자연스러운 허리 아치 유지\n· 바를 올릴 때 약간 아치형 궤적\n\n흔한 실수\n· 엉덩이가 벤치에서 뜸\n· 팔꿈치가 너무 바깥으로 벌어짐\n· 바운스 (바를 가슴에서 튕김)\n\n추천 세트/횟수\n· 근력: 4~5세트 × 3~5회\n· 근비대: 3~4세트 × 8~12회'},
+  {id:'em6',title:'풀업 / 랫풀다운',cat:'상체',content:'주요 근육\n· 광배근(주), 이두근, 후면 삼각근\n\n풀업 올바른 자세\n· 그립: 어깨너비보다 약간 넓게\n· 팔을 완전히 펴서 매달린 상태에서 시작\n· 가슴을 바 쪽으로 당기며 올라오기\n· 팔꿈치를 옆구리 쪽으로 당기는 느낌\n· 천천히 내려오며 광배근 스트레칭\n\n랫풀다운 (기구)\n· 광배근을 먼저 아래로 당기는 느낌으로\n· 상체를 약간 뒤로 기울여 수행\n· 바를 가슴 윗부분까지 당기기\n\n추천 세트/횟수\n· 3~4세트 × 6~12회\n· 초보자: 보조 밴드 활용'},
+  {id:'em7',title:'숄더프레스',cat:'상체',content:'주요 근육\n· 삼각근 전면·측면(주), 삼두근\n\n덤벨 숄더프레스 자세\n· 등받이 있는 의자에 앉아 수행 (또는 서서)\n· 덤벨을 귀 옆 높이, 팔꿈치 90°로 시작\n· 덤벨을 위로 밀어 올리며 머리 위에서 가볍게 합쳐지도록\n· 천천히 내리며 삼각근 스트레칭\n\n바벨 숄더프레스\n· 바를 쇄골 앞 또는 뒤에서 프레스\n· 앞 프레스가 어깨 부담이 적어 권장\n\n추천 세트/횟수\n· 3~4세트 × 8~12회'},
+  {id:'em8',title:'플랭크',cat:'코어',content:'주요 근육\n· 복횡근, 복직근, 척추기립근, 대둔근\n\n올바른 자세\n· 팔꿈치를 어깨 아래에 위치\n· 몸이 머리부터 발끝까지 일직선\n· 엉덩이가 너무 높거나 낮지 않도록\n· 복부를 척추 쪽으로 끌어당기며 호흡\n· 목이 너무 숙여지거나 젖혀지지 않도록\n\n변형 동작\n· 사이드 플랭크: 측면 코어 강화\n· 플랭크 레그 리프트: 고관절 신전 추가\n· 플랭크 로우: 코어+상체 복합\n\n추천 시간\n· 초보자: 20~30초 × 3세트\n· 중급자: 45~60초 × 3세트\n· 고급자: 90초 이상 × 3세트'},
+  {id:'em9',title:'크런치 / 레그레이즈',cat:'코어',content:'크런치 (복직근 상부)\n· 등을 바닥에 대고 무릎 세우기\n· 손을 귀 옆에 가볍게 대기\n· 복부 힘으로 상체를 말아 올리기 (30~45°)\n· 목을 당기지 않도록 주의\n· 천천히 내리며 복부 긴장 유지\n\n레그레이즈 (복직근 하부)\n· 등을 바닥에 완전히 밀착\n· 다리를 곧게 펴고 천장으로 올리기\n· 허리가 들리지 않도록 복부 힘 유지\n· 천천히 내리되 바닥에 닿지 않게 반복\n\n추천 세트/횟수\n· 크런치: 3세트 × 15~25회\n· 레그레이즈: 3세트 × 10~15회'},
+  {id:'em10',title:'러닝머신',cat:'유산소',content:'운동 강도 기준 (심박수)\n· 저강도 (지방 연소): 최대심박수의 50~60%\n· 중강도 (유산소): 최대심박수의 60~70%\n· 고강도 (심폐 훈련): 최대심박수의 70~85%\n\n최대심박수 계산: 220 - 나이\n\n운동 방법\n· 워밍업 5분 (빠른 걷기)\n· 목표 강도로 20~40분 유지\n· 쿨다운 5분 (천천히 걷기)\n\n인터벌 트레이닝 (HIIT)\n· 1분 고강도 달리기 + 1분 저강도 걷기\n· 8~10회 반복 (총 16~20분)\n· 지방 연소 효과↑, 시간 효율↑'},
+  {id:'em11',title:'사이클 (실내 자전거)',cat:'유산소',content:'장점\n· 무릎 관절 부담이 적어 부상 회복기 적합\n· 하체 근력과 유산소를 동시에 강화\n\n올바른 세팅\n· 안장 높이: 페달 최하점에서 무릎이 약간 구부러지는 정도\n· 핸들 높이: 허리에 무리가 없는 위치\n\n운동 방법\n· 워밍업 5분 (낮은 저항)\n· 목표 강도로 20~40분 유지\n· 쿨다운 5분\n\n스피닝 (고강도)\n· 저항 높이고 30~60초 전력 질주 후 휴식\n· 심폐 지구력 및 하체 근력 향상에 효과적'},
+  {id:'em12',title:'햄스트링 스트레칭',cat:'스트레칭',content:'앉아서 하는 햄스트링 스트레칭\n· 한 다리를 앞으로 뻗고 다른 다리는 접기\n· 발끝을 몸 쪽으로 당기며 허리를 곧게\n· 상체를 앞으로 천천히 기울여 20~30초 유지\n· 반대쪽 반복\n\n서서 하는 스트레칭\n· 한 발을 벤치나 박스 위에 올리기\n· 발끝을 세우고 상체를 앞으로 굽히기\n· 무릎을 구부리지 않도록 유의\n\n주의사항\n· 통증이 느껴지지 않을 정도로만 수행\n· 반동을 주지 않고 정적 스트레칭으로\n· 운동 후 쿨다운 시 권장'},
+  {id:'em13',title:'고관절 스트레칭',cat:'스트레칭',content:'고관절 굴곡근 스트레칭 (힙 플렉서)\n· 한쪽 무릎을 바닥에 대고 반대 발은 앞에 세우기 (런지 자세)\n· 앞 다리에 체중을 이동하며 골반을 앞으로 밀기\n· 허리를 곧게 세우고 20~30초 유지\n· 반대쪽 반복\n\n고관절 외회전 스트레칭 (비둘기 자세)\n· 한 다리를 앞에 구부려 바닥에 두기\n· 뒷다리는 곧게 뒤로 뻗기\n· 상체를 앞으로 낮추며 유지\n\n중요성\n· 앉아 있는 시간이 많을수록 고관절 굴곡근이 단축\n· 스쿼트, 데드리프트 전 필수 활성화'},
+];
+
+if(!DB.exercises) DB.exercises = [
+  {name:'스쿼트',cat:'하체'},{name:'레그프레스',cat:'하체'},{name:'런지',cat:'하체'},{name:'레그컬',cat:'하체'},{name:'레그익스텐션',cat:'하체'},{name:'힙 브릿지',cat:'하체'},{name:'카프레이즈',cat:'하체'},{name:'데드리프트',cat:'하체'},{name:'불가리안 스플릿 스쿼트',cat:'하체'},
+  {name:'벤치프레스',cat:'상체'},{name:'덤벨프레스',cat:'상체'},{name:'인클라인 벤치프레스',cat:'상체'},{name:'풀업',cat:'상체'},{name:'랫풀다운',cat:'상체'},{name:'시티드 케이블 로우',cat:'상체'},{name:'바벨 로우',cat:'상체'},{name:'숄더프레스',cat:'상체'},{name:'사이드 래터럴 레이즈',cat:'상체'},{name:'딥스',cat:'상체'},
+  {name:'플랭크',cat:'코어'},{name:'크런치',cat:'코어'},{name:'레그레이즈',cat:'코어'},{name:'러시안 트위스트',cat:'코어'},{name:'사이드 플랭크',cat:'코어'},{name:'바이시클 크런치',cat:'코어'},
+  {name:'러닝머신',cat:'유산소'},{name:'사이클',cat:'유산소'},{name:'로잉머신',cat:'유산소'},{name:'버피',cat:'유산소'},{name:'줄넘기',cat:'유산소'},{name:'스텝박스',cat:'유산소'},
+  {name:'햄스트링 스트레칭',cat:'스트레칭'},{name:'고관절 스트레칭',cat:'스트레칭'},{name:'어깨 스트레칭',cat:'스트레칭'},{name:'폼롤러',cat:'스트레칭'},
+];
+const save = () => localStorage.setItem('tc2', JSON.stringify(DB));
+const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+const find = id => DB.clients.find(c => c.id === id);
+
+// 노션 트레이너차트 환자 목록 자동 추가 (최초 1회)
+(function(){
+  const pts = [
+    {name:'신복출', gender:'여', org:'영덕읍사무소', status:'active',  joindate:'2026-02-13', memo:''},
+    {name:'황진복', gender:'여', org:'영덕읍사무소', status:'active',  joindate:'2026-02-13', memo:''},
+    {name:'김품자', gender:'여', org:'영덕읍사무소', status:'active',  joindate:'2026-02-13', memo:''},
+    {name:'함순봉', gender:'여', org:'영덕읍사무소', status:'pause',   joindate:'2026-02-13', memo:''},
+    {name:'정문주', gender:'여', org:'영덕읍사무소', status:'active',  joindate:'2026-02-13', memo:''},
+    {name:'조순이', gender:'여', org:'영덕읍사무소', status:'active',  joindate:'2026-02-13', memo:''},
+    {name:'박금술', gender:'여', org:'영덕읍사무소', status:'active',  joindate:'2026-02-13', memo:''},
+    {name:'이옥수', gender:'여', org:'영덕읍사무소', status:'pause',   joindate:'2026-02-13', memo:''},
+    {name:'정금주', gender:'여', org:'영덕읍사무소', status:'active',  joindate:'2026-02-13', memo:''},
+    {name:'박원영', gender:'여', org:'영덕읍사무소', status:'pause',   joindate:'2026-02-13', memo:''},
+    {name:'심경순', gender:'여', org:'영덕읍사무소', status:'pause',   joindate:'2026-02-13', memo:''},
+    {name:'함춘례', gender:'여', org:'영덕읍사무소', status:'pause',   joindate:'2026-02-13', memo:''},
+    {name:'최태순', gender:'여', org:'영덕읍사무소', status:'pause',   joindate:'2026-02-13', memo:''},
+    {name:'최순옥', gender:'여', org:'영덕읍사무소', status:'active',  joindate:'2026-02-13', memo:''},
+    {name:'최주숙', gender:'여', org:'영덕읍사무소', status:'active',  joindate:'2026-02-13', memo:''},
+  ];
+  let changed = false;
+  pts.forEach(p => {
+    if(!DB.clients.find(c => c.name === p.name)){
+      DB.clients.push({
+        id:uid(), name:p.name, birth:'', gender:p.gender, phone:'',
+        email:'', job:'', org:p.org, joindate:p.joindate, status:p.status,
+        height:'', iw:'', ifat:'', imu:'', goal:'', health:'', memo:p.memo,
+        measures:[], sessions:[], diets:[]
+      });
+      changed = true;
+    }
+    if(p.org && !DB.orgs.includes(p.org)){ DB.orgs.push(p.org); changed = true; }
+  });
+  if(changed) save();
+})();
+
+// 노션 초기 측정 기록 주입 (최초 1회)
+(function(){
+  const md = [
+    {name:'신복출', date:'2026-02-13', grip_l:16.8, grip_r:15.7, knee_ext:36.2, knee_flex:11.5, sprint:34, agility:0.414, balance_l:56.21},
+    {name:'황진복', date:'2026-02-13', grip_l:14.2, grip_r:14.6, knee_ext:20,   knee_flex:8.6,  sprint:31, agility:0.449, balance_l:3.51},
+    {name:'심경순', date:'2026-02-13', grip_l:17,   grip_r:18.2, knee_ext:27.6, knee_flex:9.7,  sprint:32, agility:0.457, balance_l:42.55},
+    {name:'정문주', date:'2026-02-13', grip_l:18.3, grip_r:21.3, knee_ext:28.2, knee_flex:7.8,  sprint:29, agility:0.505, balance_l:1},
+    {name:'이옥수', date:'2026-02-13', grip_l:20.1, grip_r:22.1, knee_ext:29,   knee_flex:10.6, sprint:36, agility:0.403, balance_l:27.35},
+    {name:'박원영', date:'2026-02-13', grip_l:17.1, grip_r:16.7, knee_ext:25,   knee_flex:12,   sprint:32, agility:0.454, balance_l:7.11},
+    {name:'최순옥', date:'2026-02-13', grip_l:14.1, grip_r:17.1, knee_ext:29.1, knee_flex:10.7, sprint:32, agility:0.434, balance_l:16.95},
+    {name:'함춘례', date:'2026-02-13', grip_l:17.3, grip_r:18.2, knee_ext:33.6, knee_flex:9.6,  sprint:33, agility:0.426, balance_l:23.66},
+    {name:'최태순', date:'2026-02-13', grip_l:16.7, grip_r:17,   knee_ext:19.8, knee_flex:9.9,  sprint:29, agility:0.524, balance_l:22.5},
+    {name:'최주숙', date:'2026-02-13', grip_l:23.8, grip_r:23.7, knee_ext:37.1, knee_flex:9.7,  sprint:33, agility:0.413, balance_l:13.45},
+    {name:'함순봉', date:'2026-02-13', grip_l:15.4, grip_r:20.7, knee_ext:26.5, knee_flex:14.4, sprint:32, agility:0.48,  balance_l:29.59},
+    {name:'조순이', date:'2026-02-13', grip_l:15.7, grip_r:14.6, knee_ext:31.2, knee_flex:9.6,  sprint:32, agility:0.431, balance_l:8.9},
+    {name:'김품자', date:'2026-02-13', grip_l:0,    grip_r:15.9, knee_ext:24.4, knee_flex:7.4,  sprint:'', agility:'',    balance_l:''},
+    {name:'박금술', date:'2026-02-13', grip_l:17.7, grip_r:13.3, knee_ext:19.9, knee_flex:8,    sprint:31, agility:0.476, balance_l:4.91},
+    {name:'정금주', date:'2026-02-13', grip_l:20.1, grip_r:12.8, knee_ext:33.9, knee_flex:15.8, sprint:29, agility:0.508, balance_l:60},
+  ];
+  let changed = false;
+  md.forEach(m => {
+    const c = DB.clients.find(cl => cl.name === m.name);
+    if(c){
+      if(!c.measures) c.measures = [];
+      if(!c.measures.find(r => r.date === m.date)){
+        c.measures.push({
+          date:m.date, weight:'', fat:'', muscle:'', waist:'', chest:'', thigh:'', arm:'',
+          grip_l:m.grip_l, grip_r:m.grip_r, knee_flex:m.knee_flex, knee_ext:m.knee_ext,
+          sprint:m.sprint, agility:m.agility, balance_l:m.balance_l, balance_r:'', memo:'초기 측정'
+        });
+        changed = true;
+      }
+    }
+  });
+  if(changed) save();
+})();
+
+// ── 유틸 ────────────────────────────────────────────────────
+const PAL = ['#2563eb','#7c3aed','#db2777','#ea580c','#16a34a','#0891b2','#b45309'];
+function pal(n){ return PAL[(n.charCodeAt(0)+(n.charCodeAt(1)||0)) % PAL.length]; }
+function av2(n){ return n ? n.slice(0,2) : '??'; }
+
+function age(b){
+  if(!b || b.length < 10) return null;
+  const [by,bm,bd] = b.split('-').map(Number);
+  if(!by || !bm || !bd) return null;
+  const t = new Date();
+  let a = t.getFullYear() - by;
+  if(t.getMonth()+1 < bm || (t.getMonth()+1 === bm && t.getDate() < bd)) a--;
+  return a;
+}
+
+function badge(s){
+  const m = {active:'b-green 활성', pause:'b-yellow 일시정지', end:'b-gray 종료'};
+  const [cls,lbl] = (m[s]||'b-gray '+s).split(' ');
+  return '<span class="badge '+cls+'">'+lbl+'</span>';
+}
+
+// ── 모달 ────────────────────────────────────────────────────
+function show(id){ document.getElementById(id).classList.add('show'); }
+function hide(id){ document.getElementById(id).classList.remove('show'); }
+
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => hide(b.dataset.close)));
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('show'); }));
+
+// ── 생년월일 → 나이 표시 ────────────────────────────────────
+document.getElementById('c-birth').addEventListener('change', function(){
+  const a = age(this.value);
+  document.getElementById('c-age-tag').textContent = a !== null ? '만 '+a+'세' : '';
+});
+
+// ── 관리자 설정 ──────────────────────────────────────────────
+function updateAdminBar(){
+  const a = DB.admin;
+  const n = a.name || '트레이너';
+  document.getElementById('sb-name').textContent = n + (a.center ? ' · '+a.center : '');
+  document.getElementById('sb-av').textContent = n.slice(0,1);
+}
+
+function populateSelects(){
+  const orgSel = document.getElementById('c-org');
+  if(orgSel){
+    const cur = orgSel.value;
+    orgSel.innerHTML = '<option value="">선택 안 함</option>'
+      + (DB.orgs||[]).map(o=>'<option value="'+o+'"'+(cur===o?' selected':'')+'>'+o+'</option>').join('');
+  }
+  const typeSel = document.getElementById('se-type');
+  if(typeSel){
+    const cur = typeSel.value;
+    typeSel.innerHTML = (DB.exTypes||[]).map(t=>'<option value="'+t+'"'+(cur===t?' selected':'')+'>'+t+'</option>').join('');
+  }
+  const grTypeSel = document.getElementById('gr-type');
+  if(grTypeSel){
+    const cur = grTypeSel.value;
+    grTypeSel.innerHTML = (DB.exTypes||[]).map(t=>'<option value="'+t+'"'+(cur===t?' selected':'')+'>'+t+'</option>').join('');
+  }
+}
+
+let curAdminSection = 'profile';
+
+function renderAdminSubSidebar(){
+  const ssb = document.getElementById('sub-sidebar');
+  const list = document.getElementById('sub-sidebar-list');
+  const titleEl = document.getElementById('ssb-title');
+  const addBtn = document.getElementById('ssb-add-btn');
+  if(!ssb||!list) return;
+  ssb.dataset.type = 'admin';
+  if(titleEl) titleEl.textContent = '관리자 설정';
+  if(addBtn){
+    if(curAdminSection==='profile'||curAdminSection==='colors'){ addBtn.style.display='none'; }
+    else{ addBtn.style.display=''; addBtn.setAttribute('onclick','focusAdminAddInput()'); }
+  }
+  const items = [
+    {k:'profile',  icon:'⚙',  label:'트레이너 설정'},
+    {k:'orgs',     icon:'🏢', label:'소속 목록'},
+    {k:'types',    icon:'🏋', label:'운동 유형'},
+    {k:'foods',    icon:'🍽', label:'음식 목록'},
+    {k:'exercises',icon:'💪', label:'운동 목록'},
+    {k:'colors',   icon:'🎨', label:'색상 이름'},
+  ];
+  list.innerHTML = items.map(it=>
+    '<div class="ssb-item'+(curAdminSection===it.k?' on':'')+'" onclick="navAdminSection(\''+it.k+'\')" style="display:flex;align-items:center;gap:9px">'
+    +'<span>'+it.icon+'</span>'
+    +'<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">'+it.label+'</span>'
+    +'</div>'
+  ).join('');
+}
+
+function navAdminSection(section){
+  curAdminSection = section;
+  renderAdminSubSidebar();
+  const el = document.getElementById('page');
+  if(!el) return;
+  el.innerHTML = pgAdmin();
+  initAdminSection();
+}
+
+function initAdminSection(){
+  if(curAdminSection==='profile') initAdminPage();
+  else if(curAdminSection==='foods') renderAdminFoods();
+  else if(curAdminSection==='exercises') renderAdminExercises();
+  else renderAdminLists();
+}
+
+function focusAdminAddInput(){
+  const m = {orgs:'new-org',types:'new-type',foods:'new-food-name',exercises:'new-ex-name'};
+  const el = document.getElementById(m[curAdminSection]);
+  if(el) el.focus();
+}
+
+function adminTab(tab){
+  ['profile','lists'].forEach(t=>{
+    document.getElementById('atab-'+t).classList.toggle('on', t===tab);
+    document.getElementById('admin-pane-'+t).classList.toggle('on', t===tab);
+  });
+  if(tab==='lists') renderAdminLists();
+}
+
+function renderAdminLists(){
+  const orgs = DB.orgs||[], types = DB.exTypes||[];
+  const orgEl = document.getElementById('admin-orgs-list');
+  if(orgEl) orgEl.innerHTML = orgs.length
+    ? orgs.map((o,i)=>'<span class="list-chip">'+o+'<button onclick="removeOrg('+i+')">&#x2715;</button></span>').join('')
+    : '<span style="color:#9ca3af;font-size:12px">등록된 소속 없음</span>';
+  const typesEl = document.getElementById('admin-types-list');
+  if(typesEl) typesEl.innerHTML = types.length
+    ? types.map((t,i)=>'<span class="list-chip yellow">'+t+'<button onclick="removeExType('+i+')">&#x2715;</button></span>').join('')
+    : '<span style="color:#9ca3af;font-size:12px">등록된 유형 없음</span>';
+  renderAdminFoods();
+  renderAdminExercises();
+}
+
+function renderAdminFoods(){
+  const foods = DB.foods||[];
+  const cats = [...new Set(foods.map(f=>f.cat))];
+  const dl = document.getElementById('food-cat-list');
+  if(dl) dl.innerHTML = cats.map(c=>'<option value="'+c+'">').join('');
+  const el = document.getElementById('admin-foods-list');
+  if(!el) return;
+  if(!foods.length){ el.innerHTML='<span style="color:#9ca3af;font-size:12px">등록된 음식 없음</span>'; return; }
+  el.innerHTML = cats.map(cat=>{
+    const cf=foods.filter(f=>f.cat===cat);
+    return '<div style="margin-bottom:8px"><span style="font-size:11px;font-weight:700;color:#6b7280;margin-right:6px">'+cat+'</span>'
+      +cf.map(f=>{ const i=foods.indexOf(f); return '<span class="list-chip" style="background:#fce7f3;color:#9d174d"><span>'+f.name+'</span><button onclick="removeFood('+i+')">&#x2715;</button></span>'; }).join('')
+      +'</div>';
+  }).join('');
+}
+
+function addFood(){
+  const cat=document.getElementById('new-food-cat').value.trim();
+  const name=document.getElementById('new-food-name').value.trim();
+  if(!cat){alert('분류를 입력해주세요.');return;}
+  if(!name){alert('음식 이름을 입력해주세요.');return;}
+  if((DB.foods||[]).some(f=>f.name===name&&f.cat===cat)){alert('이미 있는 음식입니다.');return;}
+  if(!DB.foods) DB.foods=[];
+  DB.foods.push({name,cat});
+  DB.foods.sort((a,b)=>a.cat.localeCompare(b.cat)||a.name.localeCompare(b.name));
+  save();
+  document.getElementById('new-food-name').value='';
+  renderAdminFoods();
+}
+
+function removeFood(i){ DB.foods.splice(i,1); save(); renderAdminFoods(); }
+
+
+function renderAdminExercises(){
+  const exs = DB.exercises||[];
+  const cats = [...new Set(exs.map(e=>e.cat))];
+  const dl = document.getElementById('ex-cat-list');
+  if(dl) dl.innerHTML = cats.map(c=>'<option value="'+c+'">').join('');
+  const el = document.getElementById('admin-exercises-list');
+  if(!el) return;
+  if(!exs.length){ el.innerHTML='<span style="color:#9ca3af;font-size:12px">등록된 운동 없음</span>'; return; }
+  el.innerHTML = cats.map(cat=>{
+    const cf=exs.filter(e=>e.cat===cat);
+    return '<div style="margin-bottom:8px"><span style="font-size:11px;font-weight:700;color:#6b7280;margin-right:6px">'+cat+'</span>'
+      +cf.map(e=>{ const i=exs.indexOf(e); return '<span class="list-chip" style="background:#d1fae5;color:#065f46"><span>'+e.name+'</span><button onclick="removeExercise('+i+')">&#x2715;</button></span>'; }).join('')
+      +'</div>';
+  }).join('');
+}
+function addExercise(){
+  const cat=document.getElementById('new-ex-cat').value.trim();
+  const name=document.getElementById('new-ex-name').value.trim();
+  if(!cat){alert('분류를 입력해주세요.');return;}
+  if(!name){alert('운동 이름을 입력해주세요.');return;}
+  if((DB.exercises||[]).some(e=>e.name===name&&e.cat===cat)){alert('이미 있는 운동입니다.');return;}
+  if(!DB.exercises) DB.exercises=[];
+  DB.exercises.push({name,cat});
+  DB.exercises.sort((a,b)=>a.cat.localeCompare(b.cat)||a.name.localeCompare(b.name));
+  save();
+  document.getElementById('new-ex-name').value='';
+  renderAdminExercises();
+}
+function removeExercise(i){ DB.exercises.splice(i,1); save(); renderAdminExercises(); }
+
+// ── 운동 선택 패널 ────────────────────────────────────────────
+let epActiveCat = {};
+const EP_IDS = ['session','weekplan','sessionlog'];
+let sessionLogExercises = [];
+
+let slEditExIdx = null;
+
+function renderSessionLogExercises(){
+  const el=document.getElementById('sl-actual-chips');
+  if(!el) return;
+  if(!sessionLogExercises.length){
+    el.innerHTML='<span style="color:#adb5bd;font-size:12px">운동을 추가해주세요</span>';
+    return;
+  }
+  el.innerHTML=sessionLogExercises.map((ex,i)=>{
+    const parts=ex.split('|');
+    const name=parts[0].trim();
+    const detail=parts[1]?parts[1].trim():'';
+    const editing=slEditExIdx===i;
+    return '<div style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:'+(editing?'#fdba74':'#ffedd5')+';border-radius:7px;width:100%;box-sizing:border-box;'+(editing?'outline:2px solid #ea580c;':'')+'}">'
+      +'<span style="font-size:11px;font-weight:700;color:#fb923c;min-width:18px;text-align:right">'+(i+1)+'.</span>'
+      +'<span style="flex:1;font-size:12px;color:#9a3412;font-weight:600">'+name+(detail?' <span style="color:#fb923c;font-weight:400">'+detail+'</span>':'')+'</span>'
+      +'<div style="display:flex;gap:2px;flex-shrink:0">'
+      +'<button type="button" onclick="startEditSlEx('+i+')" style="background:none;border:none;cursor:pointer;padding:2px 5px;font-size:12px;color:#c2410c" title="수정">&#x270F;</button>'
+      +'<button type="button" onclick="moveSessionLogEx('+i+',-1)" style="background:none;border:none;cursor:pointer;padding:2px 5px;font-size:12px;color:'+(i===0?'#d1d5db':'#c2410c')+'" '+(i===0?'disabled':'')+'>▲</button>'
+      +'<button type="button" onclick="moveSessionLogEx('+i+',1)" style="background:none;border:none;cursor:pointer;padding:2px 5px;font-size:12px;color:'+(i===sessionLogExercises.length-1?'#d1d5db':'#c2410c')+'" '+(i===sessionLogExercises.length-1?'disabled':'')+'>▼</button>'
+      +'<button type="button" onclick="removeSessionLogExercise('+i+')" style="background:none;border:none;cursor:pointer;padding:2px 5px;font-size:12px;color:#fb923c">&#x2715;</button>'
+      +'</div></div>';
+  }).join('');
+}
+function moveSessionLogEx(i, dir){
+  const j=i+dir;
+  if(j<0||j>=sessionLogExercises.length) return;
+  [sessionLogExercises[i],sessionLogExercises[j]]=[sessionLogExercises[j],sessionLogExercises[i]];
+  if(slEditExIdx===i) slEditExIdx=j;
+  else if(slEditExIdx===j) slEditExIdx=i;
+  renderSessionLogExercises();
+}
+function startEditSlEx(i){
+  slEditExIdx=i;
+  const ex=sessionLogExercises[i];
+  const parts=ex.split('|');
+  const name=parts[0].trim();
+  const detail=parts[1]?parts[1].trim():'';
+  document.getElementById('sl-ex-name').value=name;
+  let sets='',reps='',weight='',mins='';
+  detail.split(' / ').forEach(seg=>{
+    if(seg.includes('×')){ const p=seg.split('×'); sets=p[0]; reps=p[1]; }
+    else if(seg.endsWith('kg')) weight=seg.slice(0,-2);
+    else if(seg.endsWith('분')) mins=seg.slice(0,-1);
+  });
+  document.getElementById('sl-ex-sets').value=sets;
+  document.getElementById('sl-ex-reps').value=reps;
+  document.getElementById('sl-ex-weight').value=weight;
+  document.getElementById('sl-ex-mins').value=mins;
+  const btn=document.querySelector('[onclick="addSessionLogExercise()"]');
+  if(btn) btn.textContent='수정';
+  document.getElementById('sl-ex-name').focus();
+  renderSessionLogExercises();
+}
+function addSessionLogExercise(){
+  const name=(document.getElementById('sl-ex-name').value||'').trim();
+  const sets=document.getElementById('sl-ex-sets').value.trim();
+  const reps=document.getElementById('sl-ex-reps').value.trim();
+  const weight=document.getElementById('sl-ex-weight').value.trim();
+  const mins=document.getElementById('sl-ex-mins').value.trim();
+  if(!name) return;
+  let detail='';
+  if(sets||reps) detail=(sets||'?')+'×'+(reps||'?');
+  if(weight) detail+=(detail?' / ':'')+weight+'kg';
+  if(mins) detail+=(detail?' / ':'')+mins+'분';
+  const val=name+(detail?' | '+detail:'');
+  if(slEditExIdx!==null){ sessionLogExercises[slEditExIdx]=val; slEditExIdx=null; }
+  else sessionLogExercises.push(val);
+  document.getElementById('sl-ex-name').value='';
+  document.getElementById('sl-ex-sets').value='';
+  document.getElementById('sl-ex-reps').value='';
+  document.getElementById('sl-ex-weight').value='';
+  document.getElementById('sl-ex-mins').value='';
+  const btn=document.querySelector('[onclick="addSessionLogExercise()"]');
+  if(btn) btn.textContent='추가';
+  document.getElementById('sl-ex-name').focus();
+  renderSessionLogExercises();
+}
+function removeSessionLogExercise(i){
+  if(slEditExIdx===i){ slEditExIdx=null; const btn=document.querySelector('[onclick="addSessionLogExercise()"]'); if(btn) btn.textContent='추가'; }
+  sessionLogExercises.splice(i,1);
+  renderSessionLogExercises();
+}
+
+function toggleExPicker(id){
+  const panel=document.getElementById('ep-'+id);
+  const btn=document.getElementById('ep-'+id+'-btn');
+  const isOpen=panel.style.display!=='none';
+  EP_IDS.forEach(t=>{
+    document.getElementById('ep-'+t).style.display='none';
+    document.getElementById('ep-'+t+'-btn').textContent='+ 운동 선택';
+  });
+  if(!isOpen){ panel.style.display='block'; btn.textContent='▴ 닫기'; renderExPanel(id); }
+}
+function renderExPanel(id){
+  const exs=DB.exercises||[];
+  const cats=[...new Set(exs.map(e=>e.cat))];
+  if(!epActiveCat[id]||!cats.includes(epActiveCat[id])) epActiveCat[id]=cats[0]||null;
+  const cat=epActiveCat[id];
+  document.getElementById('ep-'+id+'-cats').innerHTML=cats.length
+    ? cats.map(c=>'<button type="button" onclick="epActiveCat[\''+id+'\']=\''+c+'\';renderExPanel(\''+id+'\')" style="padding:4px 11px;font-size:12px;border:none;border-radius:20px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .1s;background:'+(cat===c?'#059669':'rgba(0,0,0,0.07)')+';color:'+(cat===c?'#fff':'#374151')+'">'+c+'</button>').join('')
+    : '<span style="color:#9ca3af;font-size:12px">관리자 설정에서 운동을 추가해주세요</span>';
+  const filtered=cat?exs.filter(e=>e.cat===cat):[];
+  document.getElementById('ep-'+id+'-exs').innerHTML=filtered.length
+    ? filtered.map(e=>'<button type="button" onclick="selectExercise(\''+id+'\',\''+e.name+'\')" style="background:#fff;border:1.5px solid #d1d5db;color:#374151;border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;font-family:inherit;transition:background .1s" onmouseenter="this.style.background=\'#f3f4f6\'" onmouseleave="this.style.background=\'#fff\'">'+e.name+'</button>').join('')
+    : '<span style="color:#9ca3af;font-size:12px">운동 없음</span>';
+}
+function selectExercise(id, name){
+  if(id==='session'){
+    document.getElementById('se-ex-name').value=name;
+    document.getElementById('se-ex-sets').focus();
+  } else if(id==='weekplan'){
+    document.getElementById('wp-ex-name').value=name;
+    document.getElementById('wp-ex-sets').focus();
+  } else if(id==='sessionlog'){
+    document.getElementById('sl-ex-name').value=name;
+    document.getElementById('sl-ex-sets').focus();
+  }
+}
+function showExSuggest(prefix){
+  const input=document.getElementById(prefix+'-ex-name');
+  const drop=document.getElementById(prefix+'-ex-suggest');
+  const q=(input.value||'').trim().toLowerCase();
+  if(!q){drop.style.display='none';return;}
+  const matches=(DB.exercises||[]).filter(e=>e.name.toLowerCase().includes(q));
+  if(!matches.length){drop.style.display='none';return;}
+  drop.innerHTML=matches.map(e=>
+    '<div data-name="'+e.name.replace(/"/g,'&quot;')+'" onmousedown="pickExSuggest(\''+prefix+'\',\''+e.name.replace(/'/g,"\\'")+'\')" style="padding:7px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:6px">'
+    +'<span style="font-size:10px;color:#9ca3af;background:#f3f4f6;border-radius:4px;padding:1px 5px">'+e.cat+'</span>'
+    +e.name+'</div>'
+  ).join('');
+  drop.style.display='block';
+}
+function pickExSuggest(prefix, name){
+  document.getElementById(prefix+'-ex-name').value=name;
+  document.getElementById(prefix+'-ex-suggest').style.display='none';
+  document.getElementById(prefix+'-ex-sets').focus();
+}
+function handleExSuggestKey(e, prefix){
+  const drop=document.getElementById(prefix+'-ex-suggest');
+  if(e.key==='Escape'){drop.style.display='none';return;}
+  if(e.key==='Enter'){
+    const first=drop.querySelector('div');
+    if(first&&drop.style.display!=='none'){
+      pickExSuggest(prefix,first.dataset.name);
+      e.preventDefault();
+      return;
+    }
+    if(prefix==='wp') document.getElementById('wp-ex-sets').focus();
+    else document.getElementById('sl-ex-sets').focus();
+  }
+}
+document.addEventListener('click',function(e){
+  ['wp','sl'].forEach(prefix=>{
+    const drop=document.getElementById(prefix+'-ex-suggest');
+    const input=document.getElementById(prefix+'-ex-name');
+    if(drop&&input&&!drop.contains(e.target)&&e.target!==input) drop.style.display='none';
+  });
+  ['am','pm','ev','sn'].forEach(k=>{
+    const drop=document.getElementById('fp-'+k+'-suggest');
+    const input=document.getElementById('fp-'+k+'-input');
+    if(drop&&input&&!drop.contains(e.target)&&e.target!==input) drop.style.display='none';
+  });
+});
+function showFoodSuggest(k){
+  const input=document.getElementById('fp-'+k+'-input');
+  const drop=document.getElementById('fp-'+k+'-suggest');
+  const q=(input.value||'').trim().toLowerCase();
+  if(!q){drop.style.display='none';return;}
+  const matches=(DB.foods||[]).filter(f=>f.name.toLowerCase().includes(q));
+  if(!matches.length){drop.style.display='none';return;}
+  drop.innerHTML=matches.map(f=>
+    '<div data-name="'+f.name.replace(/"/g,'&quot;')+'" onmousedown="pickFoodSuggest(\''+k+'\',\''+f.name.replace(/'/g,"\\'")+'\')" style="padding:7px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:6px">'
+    +'<span style="font-size:10px;color:#9ca3af;background:#f3f4f6;border-radius:4px;padding:1px 5px">'+f.cat+'</span>'
+    +f.name+'</div>'
+  ).join('');
+  drop.style.display='block';
+}
+function pickFoodSuggest(k, name){
+  document.getElementById('fp-'+k+'-input').value=name;
+  document.getElementById('fp-'+k+'-suggest').style.display='none';
+  document.getElementById('fp-'+k+'-qty').focus();
+}
+function handleFoodSuggestKey(e, k){
+  const drop=document.getElementById('fp-'+k+'-suggest');
+  if(e.key==='Escape'){drop.style.display='none';return;}
+  if(e.key==='Enter'){
+    const first=drop.querySelector('div');
+    if(first&&drop.style.display!=='none'){
+      pickFoodSuggest(k, first.dataset.name);
+      e.preventDefault();
+      return;
+    }
+    document.getElementById('fp-'+k+'-qty').focus();
+    e.preventDefault();
+  }
+}
+function addFoodByInput(k){
+  const input=document.getElementById('fp-'+k+'-input');
+  const qtyEl=document.getElementById('fp-'+k+'-qty');
+  const name=(input.value||'').trim();
+  if(!name) return;
+  const qty=(qtyEl.value||'').trim();
+  addFoodToMeal(k, qty ? name+' ('+qty+')' : name);
+  input.value='';
+  qtyEl.value='';
+  document.getElementById('fp-'+k+'-suggest').style.display='none';
+  input.focus();
+}
+
+function addOrg(){
+  const val = document.getElementById('new-org').value.trim();
+  if(!val) return;
+  if(DB.orgs.includes(val)){ alert('이미 있는 소속입니다.'); return; }
+  DB.orgs.push(val); save();
+  document.getElementById('new-org').value = '';
+  renderAdminLists(); populateSelects();
+}
+function removeOrg(i){ DB.orgs.splice(i,1); save(); renderAdminLists(); populateSelects(); }
+
+function addExType(){
+  const val = document.getElementById('new-type').value.trim();
+  if(!val) return;
+  if(DB.exTypes.includes(val)){ alert('이미 있는 유형입니다.'); return; }
+  DB.exTypes.push(val); save();
+  document.getElementById('new-type').value = '';
+  renderAdminLists(); populateSelects();
+}
+function removeExType(i){ DB.exTypes.splice(i,1); save(); renderAdminLists(); populateSelects(); }
+
+function adminNameInput(el){
+  const prev=document.getElementById('admin-av-preview');
+  if(prev) prev.textContent=(el.value||'관').slice(0,1);
+}
+function adminPhoneInput(el){
+  const d=el.value.replace(/\D/g,'').slice(0,11);
+  if(d.length<4) el.value=d;
+  else if(d.length<8) el.value=d.slice(0,3)+'-'+d.slice(3);
+  else el.value=d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7);
+}
+function saveAdmin(){
+  const name=(document.getElementById('ad-name').value||'').trim();
+  if(!name){alert('이름을 입력해주세요.');return;}
+  DB.admin={name,center:v('ad-center'),phone:v('ad-phone'),email:v('ad-email'),memo:v('ad-memo')};
+  save(); updateAdminBar();
+  const btn=document.getElementById('btn-save-admin');
+  if(btn){const orig=btn.textContent;btn.textContent='저장됨 ✓';btn.style.background='#16a34a';setTimeout(()=>{btn.textContent=orig;btn.style.background='';},1500);}
+}
+function initAdminPage(){
+  const a=DB.admin;
+  sv('ad-name',a.name||''); sv('ad-center',a.center||'');
+  sv('ad-phone',a.phone||''); sv('ad-email',a.email||''); sv('ad-memo',a.memo||'');
+  const prev=document.getElementById('admin-av-preview');
+  if(prev) prev.textContent=(a.name||'관').slice(0,1);
+}
+
+updateAdminBar();
+populateSelects();
+
+// ── 연락처 자동 포맷 ─────────────────────────────────────────
+document.getElementById('c-phone').addEventListener('input', function(){
+  const d = this.value.replace(/\D/g,'').slice(0,11);
+  if(d.length < 4)      this.value = d;
+  else if(d.length < 8) this.value = d.slice(0,3)+'-'+d.slice(3);
+  else                  this.value = d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7);
+});
+
+// ── 회원 모달 열기 ───────────────────────────────────────────
+let editId = null;
+
+function v(id){ return document.getElementById(id).value; }
+function sv(id,val){ document.getElementById(id).value = val||''; }
+
+function openAdd(){
+  editId = null;
+  document.getElementById('m-client-title').textContent = '회원 추가';
+  ['c-name','c-birth','c-phone','c-email','c-job','c-org','c-height','c-weight','c-fat','c-muscle','c-goal','c-health','c-memo'].forEach(id=>sv(id,''));
+  sv('c-gender',''); sv('c-status','active');
+  sv('c-joindate', new Date().toISOString().slice(0,10));
+  document.getElementById('c-age-tag').textContent = '';
+  populateSelects();
+  show('m-client');
+}
+
+function openEdit(id){
+  editId = id;
+  const c = find(id);
+  document.getElementById('m-client-title').textContent = '회원 수정';
+  sv('c-name',c.name); sv('c-birth',c.birth); sv('c-gender',c.gender);
+  sv('c-phone',c.phone); sv('c-email',c.email); sv('c-job',c.job);
+  sv('c-joindate',c.joindate); sv('c-status',c.status);
+  populateSelects();
+  sv('c-org',c.org||'');
+  sv('c-height',c.height); sv('c-weight',c.iw); sv('c-fat',c.ifat); sv('c-muscle',c.imu);
+  sv('c-goal',c.goal); sv('c-health',c.health); sv('c-memo',c.memo);
+  const a = age(c.birth);
+  document.getElementById('c-age-tag').textContent = a !== null ? '만 '+a+'세' : '';
+  show('m-client');
+}
+
+document.getElementById('btn-add').addEventListener('click', ()=>{ if(curPage==='groups') openGroup(); else openAdd(); });
+
+document.getElementById('btn-save-client').addEventListener('click', function(){
+  const name = v('c-name').trim();
+  if(!name){ alert('이름을 입력해주세요.'); return; }
+  const d = {
+    name, birth:v('c-birth'), gender:v('c-gender'), phone:v('c-phone'),
+    email:v('c-email'), job:v('c-job'), org:v('c-org'), joindate:v('c-joindate'), status:v('c-status'),
+    height:v('c-height'), iw:v('c-weight'), ifat:v('c-fat'), imu:v('c-muscle'),
+    goal:v('c-goal'), health:v('c-health'), memo:v('c-memo')
+  };
+  if(editId){
+    Object.assign(find(editId), d);
+  } else {
+    d.id = uid(); d.measures = []; d.sessions = []; d.diets = [];
+    if(d.iw || d.ifat || d.imu)
+      d.measures.push({date:d.joindate||new Date().toISOString().slice(0,10), weight:d.iw, fat:d.ifat, muscle:d.imu, memo:'초기 측정'});
+    DB.clients.push(d);
+  }
+  save(); hide('m-client'); render();
+});
+
+// ── 측정 모달 ────────────────────────────────────────────────
+let curId = null;
+let editMeasureIdx = null;
+
+function openMeasure(){
+  editMeasureIdx = null;
+  document.getElementById('m-measure-title').textContent = '신체 측정 기록';
+  sv('me-date', new Date().toISOString().slice(0,10));
+  ['me-weight','me-fat','me-muscle','me-waist','me-chest','me-thigh','me-arm','me-grip-l','me-grip-r','me-knee-flex','me-knee-ext','me-sprint','me-agility','me-balance-l','me-balance-r','me-memo'].forEach(id=>sv(id,''));
+  updateMeasureCalc();
+  show('m-measure');
+}
+
+function openEditMeasure(idx){
+  editMeasureIdx = idx;
+  document.getElementById('m-measure-title').textContent = '측정 기록 수정';
+  const m = find(curId).measures[idx];
+  sv('me-date',m.date); sv('me-weight',m.weight); sv('me-fat',m.fat);
+  sv('me-muscle',m.muscle); sv('me-waist',m.waist); sv('me-chest',m.chest);
+  sv('me-thigh',m.thigh); sv('me-arm',m.arm); sv('me-grip-l',m.grip_l);
+  sv('me-grip-r',m.grip_r); sv('me-knee-flex',m.knee_flex); sv('me-knee-ext',m.knee_ext);
+  sv('me-sprint',m.sprint); sv('me-agility',m.agility);
+  sv('me-balance-l',m.balance_l); sv('me-balance-r',m.balance_r); sv('me-memo',m.memo);
+  updateMeasureCalc();
+  show('m-measure');
+}
+
+document.getElementById('btn-save-measure').addEventListener('click', function(){
+  const date = v('me-date');
+  if(!date){ alert('날짜를 입력해주세요.'); return; }
+  const c = find(curId);
+  const rec = {date, weight:v('me-weight'), fat:v('me-fat'), muscle:v('me-muscle'),
+    waist:v('me-waist'), chest:v('me-chest'), thigh:v('me-thigh'), arm:v('me-arm'),
+    grip_l:v('me-grip-l'), grip_r:v('me-grip-r'), knee_flex:v('me-knee-flex'), knee_ext:v('me-knee-ext'), sprint:v('me-sprint'), agility:v('me-agility'),
+    balance_l:v('me-balance-l'), balance_r:v('me-balance-r'), memo:v('me-memo')};
+  if(editMeasureIdx !== null){
+    c.measures[editMeasureIdx] = rec;
+  } else {
+    c.measures.push(rec);
+  }
+  c.measures.sort((a,b)=>a.date.localeCompare(b.date));
+  save(); hide('m-measure'); render();
+});
+
+// ── 세션 모달 ────────────────────────────────────────────────
+let editSessionIdx = null;
+let sessionExercises = [];
+
+function renderSessionExercises(){
+  const el = document.getElementById('se-ex-chips');
+  if(!el) return;
+  el.innerHTML = sessionExercises.length
+    ? sessionExercises.map((ex,i)=>{
+        const p=ex.split('|');
+        const name=(p[0]||'').trim(), detail=(p[1]||'').trim();
+        return '<span class="list-chip" style="background:#d1fae5;color:#065f46">'
+          +'<b>'+name+'</b>'+(detail?' <span style="font-weight:400;font-size:11px">'+detail+'</span>':'')
+          +'<button type="button" onclick="removeSessionExercise('+i+')">&#x2715;</button></span>';
+      }).join('')
+    : '<span style="color:#adb5bd;font-size:12px">운동을 추가해주세요</span>';
+}
+function addSessionExercise(){
+  const name=(document.getElementById('se-ex-name').value||'').trim();
+  const sets=document.getElementById('se-ex-sets').value.trim();
+  const reps=document.getElementById('se-ex-reps').value.trim();
+  const weight=document.getElementById('se-ex-weight').value.trim();
+  if(!name) return;
+  let detail='';
+  if(sets||reps) detail=(sets||'?')+'×'+(reps||'?');
+  if(weight) detail+=(detail?' / ':'')+weight+'kg';
+  sessionExercises.push(name+(detail?' | '+detail:''));
+  document.getElementById('se-ex-name').value='';
+  document.getElementById('se-ex-sets').value='';
+  document.getElementById('se-ex-reps').value='';
+  document.getElementById('se-ex-weight').value='';
+  document.getElementById('se-ex-name').focus();
+  renderSessionExercises();
+}
+function removeSessionExercise(i){
+  sessionExercises.splice(i,1);
+  renderSessionExercises();
+}
+
+function openSession(){
+  editSessionIdx = null;
+  document.getElementById('m-session-title').textContent = '세션 기록';
+  sv('se-date', new Date().toISOString().slice(0,10));
+  sessionExercises=[]; sv('se-note',''); sv('se-dur','');
+  sv('se-int','중강도');
+  populateSelects();
+  epActiveCat['session']=null;
+  EP_IDS.forEach(t=>{ const p=document.getElementById('ep-'+t); if(p) p.style.display='none'; const b=document.getElementById('ep-'+t+'-btn'); if(b) b.textContent='+ 운동 선택'; });
+  renderSessionExercises();
+  show('m-session');
+}
+
+function openEditSession(idx){
+  editSessionIdx = idx;
+  document.getElementById('m-session-title').textContent = '세션 기록 수정';
+  const s = find(curId).sessions[idx];
+  sv('se-date',s.date); sv('se-dur',s.dur);
+  sessionExercises=(s.ex||'').split('\n').filter(Boolean);
+  sv('se-int',s.int); sv('se-note',s.note||'');
+  populateSelects();
+  sv('se-type',s.type);
+  renderSessionExercises();
+  show('m-session');
+}
+
+document.getElementById('btn-save-session').addEventListener('click', function(){
+  const date = v('se-date');
+  if(!date){ alert('날짜를 입력해주세요.'); return; }
+  const c = find(curId);
+  const rec = {date, type:v('se-type'), dur:v('se-dur'), int:v('se-int'), ex:sessionExercises.join('\n'), note:v('se-note')};
+  if(editSessionIdx !== null){
+    c.sessions[editSessionIdx] = rec;
+  } else {
+    c.sessions.push(rec);
+  }
+  c.sessions.sort((a,b)=>a.date.localeCompare(b.date));
+  save(); hide('m-session'); curTab='sessions'; render();
+});
+
+// ── 식단 모달 ────────────────────────────────────────────────
+let editDietIdx = null;
+
+const DIET_KEYS = ['am','pm','ev','sn'];
+const DIET_FIELDS = ['kcal','carb','protein','fat'];
+let dietSelections = {am:[],pm:[],ev:[],sn:[]};
+
+function renderDietChips(k){
+  const el = document.getElementById('di-'+k+'-chips');
+  if(!el) return;
+  const sel = dietSelections[k]||[];
+  el.innerHTML = sel.length
+    ? sel.map(name=>'<span class="list-chip">'+name+'<button type="button" onclick="removeDietFood(\''+k+'\',\''+name+'\')">&#x2715;</button></span>').join('')
+    : '<span style="color:#adb5bd;font-size:12px">음식을 선택하세요</span>';
+}
+
+function removeDietFood(k, name){
+  dietSelections[k]=(dietSelections[k]||[]).filter(n=>n!==name);
+  renderDietChips(k);
+}
+
+function resetFoodPickers(){
+  DIET_KEYS.forEach(k=>{
+    document.getElementById('fp-'+k).style.display='none';
+    document.getElementById('fp-'+k+'-btn').textContent='+ 음식 선택';
+  });
+  fpActiveCat={};
+}
+
+function openDiet(){
+  editDietIdx = null;
+  document.getElementById('m-diet-title').textContent = '식단 기록';
+  sv('di-date', new Date().toISOString().slice(0,10));
+  DIET_KEYS.forEach(k=>{
+    DIET_FIELDS.forEach(f=>sv('di-'+k+'-'+f,''));
+    dietSelections[k]=[];
+    renderDietChips(k);
+  });
+  sv('di-memo','');
+  resetFoodPickers();
+  show('m-diet');
+}
+
+function openEditDiet(idx){
+  editDietIdx = idx;
+  document.getElementById('m-diet-title').textContent = '식단 기록 수정';
+  const d = (find(curId).diets||[])[idx];
+  sv('di-date',d.date);
+  DIET_KEYS.forEach(k=>{
+    const m=d[k]||{};
+    DIET_FIELDS.forEach(f=>sv('di-'+k+'-'+f,m[f]||''));
+    dietSelections[k]=m.menu?m.menu.split(',').map(s=>s.trim()).filter(Boolean):[];
+    renderDietChips(k);
+  });
+  sv('di-memo',d.memo||'');
+  resetFoodPickers();
+  show('m-diet');
+}
+
+// ── 음식 선택 ────────────────────────────────────────────────
+let fpActiveCat = {};
+
+function toggleFoodPicker(k){
+  const panel=document.getElementById('fp-'+k);
+  const btn=document.getElementById('fp-'+k+'-btn');
+  const isOpen=panel.style.display!=='none';
+  DIET_KEYS.forEach(m=>{ document.getElementById('fp-'+m).style.display='none'; document.getElementById('fp-'+m+'-btn').textContent='+ 음식 선택'; });
+  if(!isOpen){ panel.style.display='block'; btn.textContent='▴ 닫기'; renderFPUI(k); }
+}
+
+function renderFPUI(k){
+  const foods=DB.foods||[];
+  const cats=[...new Set(foods.map(f=>f.cat))];
+  if(!fpActiveCat[k]||!cats.includes(fpActiveCat[k])) fpActiveCat[k]=cats[0]||null;
+  const cat=fpActiveCat[k];
+  document.getElementById('fp-'+k+'-cats').innerHTML=cats.length
+    ? cats.map(c=>'<button type="button" onclick="fpActiveCat[\''+k+'\']=\''+c+'\';renderFPUI(\''+k+'\')" style="padding:4px 11px;font-size:12px;border:none;border-radius:20px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .1s;background:'+(cat===c?'#2563eb':'rgba(0,0,0,0.07)')+';color:'+(cat===c?'#fff':'#374151')+'">'+c+'</button>').join('')
+    : '<span style="color:#9ca3af;font-size:12px">관리자 설정에서 음식을 추가해주세요</span>';
+  const filtered=cat?foods.filter(f=>f.cat===cat):[];
+  document.getElementById('fp-'+k+'-foods').innerHTML=filtered.length
+    ? filtered.map(f=>'<button type="button" onclick="addFoodToMeal(\''+k+'\',\''+f.name+'\')" style="background:#fff;border:1.5px solid #d1d5db;color:#374151;border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;font-family:inherit;transition:background .1s" onmouseenter="this.style.background=\'#f3f4f6\'" onmouseleave="this.style.background=\'#fff\'">'+f.name+'</button>').join('')
+    : '<span style="color:#9ca3af;font-size:12px">음식 없음</span>';
+}
+
+function addFoodToMeal(k,name){
+  if(!dietSelections[k]) dietSelections[k]=[];
+  if(!dietSelections[k].includes(name)) dietSelections[k].push(name);
+  renderDietChips(k);
+}
+
+document.getElementById('btn-save-diet').addEventListener('click', function(){
+  const date = v('di-date');
+  if(!date){ alert('날짜를 입력해주세요.'); return; }
+  const c = find(curId);
+  if(!c.diets) c.diets = [];
+  const rec = {date, memo:v('di-memo')};
+  DIET_KEYS.forEach(k=>{ rec[k]={menu:(dietSelections[k]||[]).join(', '),kcal:v('di-'+k+'-kcal'),carb:v('di-'+k+'-carb'),protein:v('di-'+k+'-protein'),fat:v('di-'+k+'-fat')}; });
+  if(editDietIdx !== null){ c.diets[editDietIdx] = rec; } else { c.diets.push(rec); }
+  c.diets.sort((a,b)=>a.date.localeCompare(b.date));
+  save(); hide('m-diet'); curTab='diet'; render();
+});
+
+// ── 체성분 자동 계산 ─────────────────────────────────────────
+function calcBodyStats(weight, fat, height, gender, birth){
+  const w=parseFloat(weight), f=parseFloat(fat), h=parseFloat(height);
+  const a=age(birth);
+  const res={};
+  if(w&&h){
+    const bv=w/((h/100)*(h/100));
+    res.bmi=bv.toFixed(1);
+    res.bmiCat=bv<18.5?'저체중':bv<23?'정상':bv<25?'과체중':bv<30?'비만':'고도비만';
+    res.bmiCol=bv<18.5?'#0891b2':bv<23?'#16a34a':bv<25?'#f59e0b':'#ef4444';
+  }
+  if(w&&h&&a!==null){
+    const male=(gender||'').trim()==='남';
+    res.bmr=Math.round(10*w+6.25*h-5*a+(male?5:-161));
+  }
+  if(w&&f){
+    res.fatMass=(w*f/100).toFixed(1);
+    res.lbm=(w*(1-f/100)).toFixed(1);
+  }
+  return res;
+}
+
+function updateMeasureCalc(){
+  const wrap=document.getElementById('me-calc-wrap');
+  const box=document.getElementById('me-calc-box');
+  if(!wrap||!box) return;
+  const c=curId?find(curId):null;
+  const w=document.getElementById('me-weight').value;
+  const f=document.getElementById('me-fat').value;
+  if(!w&&!f){wrap.style.display='none';return;}
+  const st=calcBodyStats(w,f,c?.height,c?.gender,c?.birth);
+  if(!st.bmi&&!st.bmr&&!st.fatMass){wrap.style.display='none';return;}
+  wrap.style.display='';
+  let html='<div style="font-size:11px;font-weight:700;color:#2563eb;margin-bottom:8px">&#x1F4CA; 자동 계산</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 20px">';
+  if(st.bmi) html+='<div><span style="color:#6b7280">BMI</span> <b style="font-size:15px">'+st.bmi+'</b> <span style="background:'+st.bmiCol+'22;color:'+st.bmiCol+';border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700">'+st.bmiCat+'</span></div>';
+  if(st.bmr) html+='<div><span style="color:#6b7280">기초대사량</span> <b style="font-size:15px">'+st.bmr.toLocaleString()+'</b><span style="color:#9ca3af;font-size:11px"> kcal/일</span></div>';
+  if(st.fatMass) html+='<div><span style="color:#6b7280">체지방량</span> <b>'+st.fatMass+'</b><span style="color:#9ca3af;font-size:11px"> kg</span></div>';
+  if(st.lbm) html+='<div><span style="color:#6b7280">제지방량</span> <b>'+st.lbm+'</b><span style="color:#9ca3af;font-size:11px"> kg</span></div>';
+  html+='</div>';
+  if(w&&!c?.height) html+='<div style="color:#f59e0b;font-size:11px;margin-top:7px">&#x26A0; 회원 정보에 키를 입력하면 BMI를 계산할 수 있습니다.</div>';
+  if(w&&c?.height&&!c?.birth) html+='<div style="color:#9ca3af;font-size:11px;margin-top:5px">생년월일을 입력하면 기초대사량을 계산할 수 있습니다.</div>';
+  box.innerHTML=html;
+}
+
+document.getElementById('me-weight').addEventListener('input', updateMeasureCalc);
+document.getElementById('me-fat').addEventListener('input', updateMeasureCalc);
+</script>
+<script>
+// ── 라우터 ────────────────────────────────────────────────────
+let curPage = 'dashboard', curTab = 'measures', curMeasureTab = 'all';
+let curGroupId = null, curGroupTab = 'plans', curPlanFilter = null, curLogFilter = null, curPlanFilterOpen = false, curLogFilterOpen = false;
+
+function nav(p, id){
+  curPage = p; curId = id || null;
+  if(p==='admin') curAdminSection='profile';
+  document.querySelectorAll('#sidebar nav a').forEach(a => a.classList.toggle('on', a.dataset.p === p));
+  const titles = {dashboard:'대시보드', clients:'회원 목록', sessions:'개인운동', groups:'단체운동', 'group-detail':'단체운동 상세', schedule:'일정 관리', detail:'회원 상세', admin:'관리자 설정', 'measure-manual':'측정 메뉴얼', 'exercise-manual':'운동 메뉴얼'};
+  document.getElementById('pg-title').textContent = titles[p] || '';
+  document.querySelectorAll('#sidebar nav a').forEach(a => a.classList.toggle('on', a.dataset.p===p || (p==='group-detail' && a.dataset.p==='groups')));
+  render();
+}
+
+document.querySelectorAll('#sidebar nav a').forEach(a => a.addEventListener('click', () => {
+  const p = a.dataset.p;
+  const hasSub = ['admin','measure-manual','exercise-manual'].includes(p);
+  if(hasSub && curPage === p){
+    subSidebarPinned = !subSidebarPinned;
+    showSubSidebar(subSidebarPinned);
+    if(subSidebarPinned){
+      if(p==='admin') renderAdminSubSidebar();
+      else renderSubSidebar(p==='measure-manual'?'measure':'exercise');
+    }
+  } else {
+    if(hasSub) subSidebarPinned = true;
+    nav(p);
+  }
+}));
+
+function render(){
+  const el = document.getElementById('page');
+  const btn = document.getElementById('btn-add');
+  const hasSub = ['admin','measure-manual','exercise-manual'].includes(curPage);
+  if(!hasSub){ subSidebarPinned = false; showSubSidebar(false); }
+  else if(prevPage !== curPage){ subSidebarPinned = true; }
+  prevPage = curPage;
+  if(curPage==='dashboard'){ el.innerHTML=pgDashboard(); btn.textContent='+ 회원 추가'; btn.style.display=''; }
+  else if(curPage==='clients'){ el.innerHTML=pgClients(); btn.style.display='none'; }
+  else if(curPage==='sessions'){ el.innerHTML=pgSessions(); btn.style.display='none'; }
+  else if(curPage==='groups'){ el.innerHTML=pgGroupSessions(); btn.textContent='+ 단체운동 추가'; btn.style.display=''; }
+  else if(curPage==='group-detail'){ el.innerHTML=pgGroupDetail(); btn.style.display='none'; }
+  else if(curPage==='schedule'){ el.innerHTML=pgSchedule(); btn.style.display='none'; }
+  else if(curPage==='detail'){ el.innerHTML=pgDetail(); btn.style.display='none'; }
+  else if(curPage==='admin'){ showSubSidebar(subSidebarPinned); renderAdminSubSidebar(); el.innerHTML=pgAdmin(); btn.style.display='none'; initAdminSection(); }
+  else if(curPage==='measure-manual'){ showSubSidebar(subSidebarPinned); renderSubSidebar('measure'); el.innerHTML=pgMeasureDetail(); btn.style.display='none'; }
+  else if(curPage==='exercise-manual'){ showSubSidebar(subSidebarPinned); renderSubSidebar('exercise'); el.innerHTML=pgExerciseDetail(); btn.style.display='none'; }
+}
+
+// ── 메뉴얼 ───────────────────────────────────────────────────
+let curManualType = 'measure', editManualIdx = null, curManualFilter = {measure:null, exercise:null};
+let curExManualId = null, curMeManualId = null;
+
+function renderSubSidebar(type){
+  const ssb = document.getElementById('sub-sidebar');
+  const list = document.getElementById('sub-sidebar-list');
+  const titleEl = document.getElementById('ssb-title');
+  const addBtn = document.getElementById('ssb-add-btn');
+  if(!ssb || !list) return;
+  const isMeasure = type==='measure';
+  ssb.dataset.type = type;
+  if(titleEl) titleEl.textContent = isMeasure ? '측정 메뉴얼' : '운동 메뉴얼';
+  if(addBtn) addBtn.setAttribute('onclick', "openManual('"+type+"')");
+  const data = (isMeasure ? DB.measureManual : DB.exerciseManual)||[];
+  const curId = isMeasure ? curMeManualId : curExManualId;
+  const selectFn = isMeasure ? 'selectMeManual' : 'selectExManual';
+  const catOrder = isMeasure ? ['체성분','둘레측정','근력','반응속도'] : ['하체','상체','코어','유산소','스트레칭'];
+  const cats = [...new Set(data.map(d=>d.cat).filter(Boolean))];
+  const sorted = [...catOrder.filter(c=>cats.includes(c)), ...cats.filter(c=>!catOrder.includes(c))];
+  const uncat = data.filter(d=>!d.cat);
+
+  function ssbItem(d){
+    const blocks = getManualBlocks(d);
+    const imgBlock = blocks.find(b=>b.type==='image');
+    const thumb = imgBlock
+      ? '<img src="'+imgBlock.src+'" style="width:32px;height:32px;object-fit:cover;border-radius:4px;flex-shrink:0">'
+      : '';
+    return '<div class="ssb-item'+(curId===d.id?' on':'')+'" onclick="'+selectFn+'(\''+d.id+'\')" style="display:flex;align-items:center;gap:8px;overflow:hidden">'
+      +thumb
+      +'<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">'+d.title+'</span>'
+      +'</div>';
+  }
+
+  let h = '';
+  if(uncat.length) h += uncat.map(ssbItem).join('');
+  sorted.forEach(cat=>{
+    const items = data.filter(d=>d.cat===cat);
+    if(!items.length) return;
+    h += '<div class="ssb-cat">'+cat+'</div>';
+    h += items.map(ssbItem).join('');
+  });
+  list.innerHTML = h || '<div style="padding:16px;font-size:12px;color:#3a4a5a">등록된 항목 없음</div>';
+}
+
+function selectExManual(id){
+  curExManualId = id;
+  renderSubSidebar('exercise');
+  const el = document.getElementById('page');
+  if(el) el.innerHTML = pgExerciseDetail();
+}
+
+function selectMeManual(id){
+  curMeManualId = id;
+  renderSubSidebar('measure');
+  const el = document.getElementById('page');
+  if(el) el.innerHTML = pgMeasureDetail();
+}
+
+function pgExerciseDetail(){
+  if(!curExManualId) return '<div class="card"><div class="empty"><div class="ei">&#x1F4D6;</div>왼쪽 목록에서 운동을 선택하세요.</div></div>';
+  const d = (DB.exerciseManual||[]).find(x=>x.id===curExManualId);
+  if(!d) return '<div class="card"><div class="empty">항목을 찾을 수 없습니다.</div></div>';
+  const idx = DB.exerciseManual.indexOf(d);
+  return '<div class="card">'
+    +'<div class="card-head" style="align-items:flex-start">'
+    +'<div>'
+    +(d.cat?'<span style="background:#ede9fe;color:#7c3aed;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;display:inline-block;margin-bottom:8px">'+d.cat+'</span><br>':'')
+    +'<span style="font-size:22px;font-weight:700">'+d.title+'</span>'
+    +'</div>'
+    +'<div style="display:flex;gap:6px;flex-shrink:0">'
+    +'<button class="btn btn-ghost btn-sm" onclick="openEditManual(\'exercise\','+idx+')">수정</button>'
+    +'<button class="btn btn-red btn-sm" onclick="delExManual('+idx+')">삭제</button>'
+    +'</div></div>'
+    +renderManualBlocksHtml(d,'exercise',curExManualId)
+    +'</div>';
+}
+
+function delExManual(idx){
+  if(!confirm('삭제하시겠습니까?')) return;
+  DB.exerciseManual.splice(idx,1);
+  curExManualId = null;
+  save(); renderSubSidebar('exercise');
+  document.getElementById('page').innerHTML = pgExerciseDetail();
+}
+
+function pgMeasureDetail(){
+  if(!curMeManualId) return '<div class="card"><div class="empty"><div class="ei">&#x1F4CF;</div>왼쪽 목록에서 항목을 선택하세요.</div></div>';
+  const d = (DB.measureManual||[]).find(x=>x.id===curMeManualId);
+  if(!d) return '<div class="card"><div class="empty">항목을 찾을 수 없습니다.</div></div>';
+  const idx = DB.measureManual.indexOf(d);
+  return '<div class="card">'
+    +'<div class="card-head" style="align-items:flex-start">'
+    +'<div>'
+    +(d.cat?'<span style="background:#e0f2fe;color:#0891b2;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;display:inline-block;margin-bottom:8px">'+d.cat+'</span><br>':'')
+    +'<span style="font-size:22px;font-weight:700">'+d.title+'</span>'
+    +'</div>'
+    +'<div style="display:flex;gap:6px;flex-shrink:0">'
+    +'<button class="btn btn-ghost btn-sm" onclick="openEditManual(\'measure\','+idx+')">수정</button>'
+    +'<button class="btn btn-red btn-sm" onclick="delMeManual('+idx+')">삭제</button>'
+    +'</div></div>'
+    +renderManualBlocksHtml(d,'measure',curMeManualId)
+    +'</div>';
+}
+
+function delMeManual(idx){
+  if(!confirm('삭제하시겠습니까?')) return;
+  DB.measureManual.splice(idx,1);
+  curMeManualId = null;
+  save(); renderSubSidebar('measure');
+  document.getElementById('page').innerHTML = pgMeasureDetail();
+}
+
+let subSidebarPinned = false;
+let prevPage = null;
+
+function showSubSidebar(on){
+  const ssb = document.getElementById('sub-sidebar');
+  const main = document.getElementById('main');
+  const toggleBtn = document.getElementById('ssb-toggle-btn');
+  if(!ssb||!main) return;
+  ssb.classList.toggle('on', on);
+  main.classList.toggle('with-sub', on);
+  const hasSub = ['admin','measure-manual','exercise-manual'].includes(curPage);
+  if(toggleBtn){
+    toggleBtn.classList.toggle('on', hasSub);
+    toggleBtn.innerHTML = on ? '&#x2039;' : '&#x203A;';
+    toggleBtn.title = on ? '메뉴 닫기' : '메뉴 열기';
+  }
+}
+
+function toggleSsb(){
+  if(subSidebarPinned) closeSubSidebar();
+  else openSubSidebar();
+}
+
+function closeSubSidebar(){
+  subSidebarPinned = false;
+  showSubSidebar(false);
+}
+
+function openSubSidebar(){
+  subSidebarPinned = true;
+  showSubSidebar(true);
+  if(curPage==='admin') renderAdminSubSidebar();
+  else if(curPage==='measure-manual'||curPage==='exercise-manual')
+    renderSubSidebar(curPage==='measure-manual'?'measure':'exercise');
+}
+
+let ivImgs=[], ivIdx=0;
+function openImgViewer(type, id, startIdx){
+  const data = type==='measure' ? DB.measureManual : DB.exerciseManual;
+  const d = (data||[]).find(x=>x.id===id);
+  if(!d) return;
+  ivImgs = getManualBlocks(d).filter(b=>b.type==='image').map(b=>b.src);
+  if(!ivImgs.length) return;
+  ivIdx = Math.min(startIdx||0, ivImgs.length-1);
+  const viewer = document.getElementById('img-viewer');
+  viewer.style.display='flex';
+  updateImgViewer();
+}
+function updateImgViewer(){
+  document.getElementById('iv-img').src = ivImgs[ivIdx];
+  const multi = ivImgs.length>1;
+  document.getElementById('iv-prev').style.display = multi?'':'none';
+  document.getElementById('iv-next').style.display = multi?'':'none';
+  document.getElementById('iv-counter').textContent = multi?(ivIdx+1)+' / '+ivImgs.length:'';
+}
+function imgViewerStep(dir){
+  ivIdx=(ivIdx+dir+ivImgs.length)%ivImgs.length;
+  updateImgViewer();
+}
+function closeImgViewer(){
+  document.getElementById('img-viewer').style.display='none';
+  ivImgs=[]; ivIdx=0;
+}
+document.addEventListener('keydown',function(e){
+  const v=document.getElementById('img-viewer');
+  if(v&&v.style.display!=='none'){
+    if(e.key==='Escape') closeImgViewer();
+    if(e.key==='ArrowLeft') imgViewerStep(-1);
+    if(e.key==='ArrowRight') imgViewerStep(1);
+  }
+});
+
+const MEASURE_CATS = ['체성분','둘레측정','근력','반응속도'];
+
+function pgManual(type){
+  const isMeasure = type==='measure';
+  const data = (isMeasure ? DB.measureManual : DB.exerciseManual)||[];
+  const label = isMeasure ? '측정 메뉴얼' : '운동 메뉴얼';
+  const icon = isMeasure ? '&#x1F4CF;' : '&#x1F4D6;';
+  const accentCol = isMeasure ? '#0891b2' : '#7c3aed';
+  const accentBg  = isMeasure ? '#e0f2fe'  : '#ede9fe';
+  const cats = [...new Set(data.map(d=>d.cat).filter(Boolean))].sort();
+  const curFilter = curManualFilter[type];
+
+  let h = '<div class="card">';
+  h += '<div class="card-head"><span class="card-title">'+icon+' '+label+'</span>'
+    +'<button class="btn btn-blue btn-sm" onclick="openManual(\''+type+'\')">+ 항목 추가</button></div>';
+
+  if(cats.length){
+    h += '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-bottom:14px">'
+      +'<span style="font-size:11px;font-weight:700;color:#6b7280;margin-right:2px">분류</span>'
+      +'<button onclick="setManualFilter(\''+type+'\',null)" style="padding:4px 12px;font-size:12px;border:1.5px solid '+(curFilter===null?'#2563eb':'#e5e7eb')+';background:'+(curFilter===null?'#dbeafe':'#fff')+';color:'+(curFilter===null?'#1e40af':'#374151')+';border-radius:20px;cursor:pointer;font-family:inherit;font-weight:600">전체</button>'
+      +cats.map(c=>'<button onclick="setManualFilter(\''+type+'\',\''+c+'\')" style="padding:4px 12px;font-size:12px;border:1.5px solid '+(curFilter===c?accentCol:'#e5e7eb')+';background:'+(curFilter===c?accentBg:'#fff')+';color:'+(curFilter===c?accentCol:'#374151')+';border-radius:20px;cursor:pointer;font-family:inherit;font-weight:600">'+c+'</button>').join('')
+      +'</div>';
+  }
+
+  const filtered = curFilter ? data.filter(d=>d.cat===curFilter) : data;
+
+  if(!filtered.length){
+    h += '<div class="empty"><div class="ei">'+(isMeasure?'&#x1F4CF;':'&#x1F4D6;')+'</div>'
+      +(data.length?'해당 분류의 항목이 없습니다.':'항목을 추가해 메뉴얼을 작성하세요.')+'</div>';
+  } else {
+    h += '<div style="display:grid;gap:12px">';
+    filtered.forEach(d=>{
+      const realIdx=(isMeasure?DB.measureManual:DB.exerciseManual).indexOf(d);
+      h += '<div style="border:1.5px solid #e5e7eb;border-radius:10px;overflow:hidden">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:#f9fafb;border-bottom:1px solid #e5e7eb">'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +(d.cat?'<span style="background:'+accentBg+';color:'+accentCol+';border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700">'+d.cat+'</span>':'')
+        +'<span style="font-weight:700;font-size:14px">'+d.title+'</span>'
+        +'</div>'
+        +'<div style="display:flex;gap:4px">'
+        +'<button class="btn btn-ghost btn-sm" onclick="openEditManual(\''+type+'\','+realIdx+')">수정</button>'
+        +'<button class="btn btn-red btn-sm" onclick="delManual(\''+type+'\','+realIdx+')">삭제</button>'
+        +'</div></div>'
+        +(d.content?'<div style="padding:12px 14px;font-size:13px;white-space:pre-wrap;line-height:1.8;color:#374151">'+d.content+'</div>':'')
+        +'</div>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function setManualFilter(type, cat){
+  curManualFilter[type]=cat;
+  render();
+}
+
+let mmBlocks = [], mmBlockDrag = -1;
+
+function resizeImgFile(file, cb){
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      const MAX = 1400;
+      let w = img.width, h = img.height;
+      if(w > MAX){ h = Math.round(h*MAX/w); w = MAX; }
+      if(h > MAX){ w = Math.round(w*MAX/h); h = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      cb(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function mmAddImages(input){
+  const files = Array.from(input.files);
+  let done = 0;
+  if(!files.length) return;
+  files.forEach(f=>{
+    resizeImgFile(f, function(dataUrl){
+      mmBlocks.push({type:'image', src:dataUrl});
+      done++;
+      if(done===files.length) renderMmBlocks();
+    });
+  });
+  input.value = '';
+}
+
+function mmAddTextBlock(){
+  mmBlocks.push({type:'text', value:''});
+  renderMmBlocks();
+  // focus the new textarea
+  setTimeout(function(){
+    const tas = document.querySelectorAll('#mm-blocks textarea');
+    if(tas.length) tas[tas.length-1].focus();
+  }, 50);
+}
+
+function mmRemoveBlock(i){
+  mmBlocks.splice(i,1);
+  renderMmBlocks();
+}
+
+function mmMoveBlock(i, dir){
+  const j = i + dir;
+  if(j < 0 || j >= mmBlocks.length) return;
+  [mmBlocks[i], mmBlocks[j]] = [mmBlocks[j], mmBlocks[i]];
+  renderMmBlocks();
+}
+
+function mmBlockDrop(targetIdx){
+  if(mmBlockDrag < 0 || mmBlockDrag === targetIdx){ mmBlockDrag=-1; return; }
+  const [moved] = mmBlocks.splice(mmBlockDrag, 1);
+  mmBlocks.splice(targetIdx, 0, moved);
+  mmBlockDrag = -1;
+  renderMmBlocks();
+}
+
+function renderMmBlocks(){
+  const container = document.getElementById('mm-blocks');
+  if(!container) return;
+  if(!mmBlocks.length){
+    container.innerHTML = '<div style="color:#9ca3af;font-size:12px;padding:6px 2px">아래 버튼으로 텍스트나 사진 블록을 추가하세요.</div>';
+    return;
+  }
+  const n = mmBlocks.length;
+  container.innerHTML = mmBlocks.map((b,i)=>{
+    const moveBtns = '<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">'
+      +'<button onclick="mmMoveBlock('+i+',-1)" '+(i===0?'disabled style="opacity:.3;cursor:default"':'')+' style="padding:2px 6px;font-size:11px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;line-height:1.5">&#x25B2;</button>'
+      +'<button onclick="mmMoveBlock('+i+',1)" '+(i===n-1?'disabled style="opacity:.3;cursor:default"':'')+' style="padding:2px 6px;font-size:11px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;line-height:1.5">&#x25BC;</button>'
+      +'</div>';
+    const delBtn = '<button onclick="mmRemoveBlock('+i+')" style="padding:3px 8px;font-size:12px;background:#fee2e2;color:#ef4444;border:1px solid #fca5a5;border-radius:4px;cursor:pointer;flex-shrink:0;align-self:flex-start">×</button>';
+    const dragAttrs = 'draggable="true"'
+      +' ondragstart="mmBlockDrag='+i+';this.style.opacity=\'.45\'"'
+      +' ondragend="mmBlockDrag=-1;this.style.opacity=\'1\'"'
+      +' ondragover="event.preventDefault();this.style.outline=\'2px solid #2563eb\'"'
+      +' ondragleave="this.style.outline=\'none\'"'
+      +' ondrop="this.style.outline=\'none\';mmBlockDrop('+i+')"';
+
+    if(b.type==='text'){
+      return '<div '+dragAttrs+' style="display:flex;gap:8px;align-items:flex-start;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px">'
+        +'<span style="font-size:14px;color:#9ca3af;cursor:grab;flex-shrink:0;margin-top:4px" title="드래그하여 이동">&#x2630;</span>'
+        +'<textarea id="mmta'+i+'" oninput="mmBlocks['+i+'].value=this.value" style="flex:1;padding:7px 9px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:13px;outline:none;font-family:inherit;resize:vertical;min-height:70px">'+escMmText(b.value||'')+'</textarea>'
+        +moveBtns+delBtn+'</div>';
+    }
+    if(b.type==='image'){
+      const curSize = b.size||'full';
+      const sizes = [{k:'sm',l:'소'},{k:'md',l:'중'},{k:'lg',l:'대'},{k:'full',l:'전체'}];
+      const sizeBtns = '<div style="display:flex;gap:3px">'
+        +sizes.map(s=>'<button onclick="mmBlocks['+i+'].size=\''+s.k+'\';renderMmBlocks()" style="padding:2px 7px;font-size:11px;border-radius:4px;cursor:pointer;border:1px solid '+(curSize===s.k?'#2563eb':'#d1d5db')+';background:'+(curSize===s.k?'#dbeafe':'#f9fafb')+';color:'+(curSize===s.k?'#1e40af':'#374151')+';font-weight:'+(curSize===s.k?'700':'400')+'">'+s.l+'</button>').join('')
+        +'</div>';
+      return '<div '+dragAttrs+' style="display:flex;gap:10px;align-items:center;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px">'
+        +'<span style="font-size:14px;color:#9ca3af;cursor:grab;flex-shrink:0" title="드래그하여 이동">&#x2630;</span>'
+        +'<img src="'+b.src+'" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;flex-shrink:0">'
+        +'<div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">'
+        +'<span style="font-size:12px;color:#6b7280">사진 크기</span>'
+        +sizeBtns
+        +'</div>'
+        +moveBtns+delBtn+'</div>';
+    }
+    return '';
+  }).join('');
+}
+
+function escMmText(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function getManualBlocks(d){
+  if(d.blocks && d.blocks.length) return d.blocks;
+  const out = [];
+  if(d.content) out.push({type:'text', value:d.content});
+  (d.images||[]).forEach(src=>out.push({type:'image', src}));
+  return out;
+}
+
+function renderManualBlocksHtml(d, type, id){
+  const blocks = getManualBlocks(d);
+  if(!blocks.length) return '<div style="color:#9ca3af;font-size:13px">내용이 없습니다.</div>';
+  let imgIdx = 0;
+  const imgSrcs = blocks.filter(b=>b.type==='image').map(b=>b.src);
+  return blocks.map(b=>{
+    if(b.type==='text'){
+      return b.value ? '<div style="white-space:pre-wrap;line-height:2;font-size:14px;color:#374151;padding:4px 0">'+b.value+'</div>' : '';
+    }
+    if(b.type==='image'){
+      const ii = imgIdx++;
+      const sizeMap = {sm:'200px', md:'400px', lg:'660px', full:'100%'};
+      const maxW = sizeMap[b.size||'full']||'100%';
+      return '<div style="margin:10px 0">'
+        +'<img src="'+b.src+'" onclick="openImgViewer(\''+type+'\',\''+id+'\','+ii+')" style="max-width:'+maxW+';width:100%;border-radius:8px;border:1px solid #e5e7eb;cursor:pointer;transition:opacity .15s;display:block" onmouseover="this.style.opacity=\'.85\'" onmouseout="this.style.opacity=\'1\'">'
+        +'</div>';
+    }
+    return '';
+  }).join('');
+}
+
+function openManual(type){
+  curManualType=type; editManualIdx=null;
+  mmBlocks=[{type:'text', value:''}];
+  document.getElementById('m-manual-title').textContent='항목 추가';
+  sv('mm-title',''); sv('mm-cat','');
+  const dl=document.getElementById('mm-cat-list');
+  const data=(type==='measure'?DB.measureManual:DB.exerciseManual)||[];
+  const cats=[...new Set(data.map(d=>d.cat).filter(Boolean))];
+  if(dl) dl.innerHTML=cats.map(c=>'<option value="'+c+'">').join('');
+  renderMmBlocks();
+  show('m-manual');
+}
+
+function openEditManual(type,idx){
+  curManualType=type; editManualIdx=idx;
+  const data=(type==='measure'?DB.measureManual:DB.exerciseManual)||[];
+  const d=data[idx]; if(!d) return;
+  mmBlocks = JSON.parse(JSON.stringify(getManualBlocks(d)));
+  if(!mmBlocks.length) mmBlocks=[{type:'text', value:''}];
+  document.getElementById('m-manual-title').textContent='항목 수정';
+  sv('mm-title',d.title||''); sv('mm-cat',d.cat||'');
+  const dl=document.getElementById('mm-cat-list');
+  const cats=[...new Set(data.map(x=>x.cat).filter(Boolean))];
+  if(dl) dl.innerHTML=cats.map(c=>'<option value="'+c+'">').join('');
+  renderMmBlocks();
+  show('m-manual');
+}
+
+function delManual(type,idx){
+  if(!confirm('삭제하시겠습니까?')) return;
+  const arr=type==='measure'?DB.measureManual:DB.exerciseManual;
+  arr.splice(idx,1); save(); render();
+}
+
+document.getElementById('btn-save-manual').addEventListener('click',function(){
+  const title=(document.getElementById('mm-title').value||'').trim();
+  if(!title){alert('제목을 입력해주세요.');return;}
+  const arr=curManualType==='measure'?DB.measureManual:DB.exerciseManual;
+  const isNew = editManualIdx===null;
+  const blocks=mmBlocks.filter(b=>b.type==='image'||(b.type==='text'&&b.value.trim()));
+  const rec={id:(isNew?uid():(arr[editManualIdx]||{}).id||uid()),title,cat:(document.getElementById('mm-cat').value||'').trim(),blocks,content:blocks.filter(b=>b.type==='text').map(b=>b.value).join('\n\n'),images:blocks.filter(b=>b.type==='image').map(b=>b.src)};
+  if(!isNew) arr[editManualIdx]=rec;
+  else {
+    arr.push(rec);
+    if(curManualType==='exercise') curExManualId=rec.id;
+    else if(curManualType==='measure') curMeManualId=rec.id;
+  }
+  save(); hide('m-manual');
+  if(curManualType==='exercise'){ renderSubSidebar('exercise'); document.getElementById('page').innerHTML=pgExerciseDetail(); }
+  else if(curManualType==='measure'){ renderSubSidebar('measure'); document.getElementById('page').innerHTML=pgMeasureDetail(); }
+  else render();
+});
+
+// ── 관리자 설정 페이지 ────────────────────────────────────────
+function pgAdmin(){
+  if(curAdminSection==='profile'){
+    return '<div class="card">'
+      +'<div class="card-head" style="margin-bottom:20px"><span class="card-title">&#x2699; 트레이너 설정</span></div>'
+      +'<div style="display:flex;justify-content:center;margin-bottom:20px">'
+      +'<div id="admin-av-preview" class="av-lg" style="background:#2563eb">관</div>'
+      +'</div>'
+      +'<div class="fgrid">'
+      +'<div class="fg full"><label>이름 *</label><input id="ad-name" type="text" placeholder="트레이너 이름" oninput="adminNameInput(this)"></div>'
+      +'<div class="fg full"><label>센터 / 소속</label><input id="ad-center" type="text" placeholder="예: OO헬스클럽"></div>'
+      +'<div class="fg"><label>연락처</label><input id="ad-phone" type="text" placeholder="010-0000-0000" maxlength="13" oninput="adminPhoneInput(this)"></div>'
+      +'<div class="fg"><label>이메일</label><input id="ad-email" type="email" placeholder="email@example.com"></div>'
+      +'<div class="fg full"><label>메모 / 소개</label><textarea id="ad-memo" rows="2" placeholder="한 줄 소개..."></textarea></div>'
+      +'</div>'
+      +'<div style="display:flex;justify-content:flex-end;margin-top:16px">'
+      +'<button class="btn btn-blue" id="btn-save-admin" onclick="saveAdmin()">저장</button>'
+      +'</div></div>';
+  }
+  if(curAdminSection==='orgs'){
+    return '<div class="card">'
+      +'<div class="card-head" style="margin-bottom:16px"><span class="card-title">&#x1F3E2; 소속 목록</span></div>'
+      +'<div id="admin-orgs-list" style="margin-bottom:12px"></div>'
+      +'<div class="add-row"><input id="new-org" type="text" placeholder="소속 이름 입력..." onkeydown="if(event.key===\'Enter\')addOrg()">'
+      +'<button class="btn btn-blue btn-sm" onclick="addOrg()">+ 추가</button></div>'
+      +'</div>';
+  }
+  if(curAdminSection==='types'){
+    return '<div class="card">'
+      +'<div class="card-head" style="margin-bottom:16px"><span class="card-title">&#x1F3CB; 운동 유형</span></div>'
+      +'<div id="admin-types-list" style="margin-bottom:12px"></div>'
+      +'<div class="add-row"><input id="new-type" type="text" placeholder="운동 유형 입력..." onkeydown="if(event.key===\'Enter\')addExType()">'
+      +'<button class="btn btn-blue btn-sm" onclick="addExType()">+ 추가</button></div>'
+      +'</div>';
+  }
+  if(curAdminSection==='foods'){
+    return '<div class="card">'
+      +'<div class="card-head" style="margin-bottom:16px"><span class="card-title">&#x1F37D; 음식 목록</span></div>'
+      +'<div id="admin-foods-list" style="margin-bottom:12px"></div>'
+      +'<div class="add-row" style="margin-top:10px">'
+      +'<input id="new-food-cat" type="text" placeholder="분류 (예: 밥류)" list="food-cat-list" style="flex:0 0 130px">'
+      +'<datalist id="food-cat-list"></datalist>'
+      +'<input id="new-food-name" type="text" placeholder="음식 이름" onkeydown="if(event.key===\'Enter\')addFood()">'
+      +'<button class="btn btn-blue btn-sm" onclick="addFood()">+ 추가</button></div>'
+      +'</div>';
+  }
+  if(curAdminSection==='exercises'){
+    return '<div class="card">'
+      +'<div class="card-head" style="margin-bottom:16px"><span class="card-title">&#x1F4AA; 운동 목록</span></div>'
+      +'<div id="admin-exercises-list" style="margin-bottom:12px"></div>'
+      +'<div class="add-row" style="margin-top:10px">'
+      +'<input id="new-ex-cat" type="text" placeholder="분류 (예: 하체)" list="ex-cat-list" style="flex:0 0 120px">'
+      +'<datalist id="ex-cat-list"></datalist>'
+      +'<input id="new-ex-name" type="text" placeholder="운동 이름" onkeydown="if(event.key===\'Enter\')addExercise()">'
+      +'<button class="btn btn-blue btn-sm" onclick="addExercise()">+ 추가</button></div>'
+      +'</div>';
+  }
+  if(curAdminSection==='colors'){
+    return '<div class="card">'
+      +'<div class="card-head" style="margin-bottom:20px"><span class="card-title">&#x1F3A8; 색상 이름 편집</span>'
+      +'<span style="font-size:12px;color:#8892b0">일정 추가 모달의 색상 버튼 이름을 변경합니다</span></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">'
+      +Object.entries(EV_COLORS).map(([k,c])=>
+        '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid #e2e5ee;border-radius:10px;background:#f8f9fc">'
+        +'<span style="width:14px;height:14px;border-radius:50%;background:'+c.dot+';flex-shrink:0"></span>'
+        +'<span style="font-size:11px;color:#8892b0;width:36px;flex-shrink:0">'+c.label+'</span>'
+        +'<span style="font-size:11px;color:#c7cadf;flex-shrink:0">→</span>'
+        +'<input type="text" value="'+getColorLabel(k)+'" maxlength="10" '
+        +'onchange="setColorLabel(\''+k+'\',this.value)" '
+        +'onfocus="this.style.borderColor=\'#6366f1\'" '
+        +'onblur="this.style.borderColor=\'#e2e5ee\'" '
+        +'placeholder="'+c.label+'" '
+        +'style="flex:1;padding:6px 10px;border:1.5px solid #e2e5ee;border-radius:7px;font-size:13px;outline:none;font-family:inherit;background:#fff;color:#2d3561;min-width:0">'
+        +'</div>'
+      ).join('')
+      +'</div></div>';
+  }
+  return '';
+}
+
+// ── 대시보드 ─────────────────────────────────────────────────
+function pgDashboard(){
+  const total = DB.clients.length;
+  const active = DB.clients.filter(c=>c.status==='active').length;
+  const allSes = DB.clients.flatMap(c=>(c.sessions||[]).map(s=>({...s,name:c.name})));
+  allSes.sort((a,b)=>b.date.localeCompare(a.date));
+  const mo = new Date().toISOString().slice(0,7);
+  const moN = allSes.filter(s=>s.date.startsWith(mo)).length;
+  const recent5c = [...DB.clients].sort((a,b)=>(b.joindate||'').localeCompare(a.joindate||'')).slice(0,5);
+  const recent5s = allSes.slice(0,5);
+
+  return '<div class="stats">'
+    +'<div class="stat"><div class="ico">&#x1F465;</div><div class="lbl">전체 회원</div><div class="val">'+total+'</div></div>'
+    +'<div class="stat"><div class="ico">&#x2705;</div><div class="lbl">활성 회원</div><div class="val" style="color:#16a34a">'+active+'</div></div>'
+    +'<div class="stat"><div class="ico">&#x1F4CB;</div><div class="lbl">이번 달 세션</div><div class="val" style="color:#2563eb">'+moN+'</div></div>'
+    +'<div class="stat"><div class="ico">&#x1F4CA;</div><div class="lbl">전체 세션</div><div class="val">'+allSes.length+'</div></div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'
+    +'<div class="card"><div class="card-title" style="margin-bottom:12px">최근 등록 회원</div>'
+    +(recent5c.length===0?'<div class="empty"><div class="ei">&#x1F464;</div>등록된 회원이 없습니다.</div>'
+      :'<table><thead><tr><th>이름</th><th>등록일</th><th>상태</th></tr></thead><tbody>'
+      +recent5c.map(c=>'<tr onclick="nav(\'detail\',\''+c.id+'\')">'
+        +'<td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="background:'+pal(c.name)+'">'+av2(c.name)+'</div>'+c.name+'</div></td>'
+        +'<td>'+(c.joindate||'-')+'</td><td>'+badge(c.status)+'</td></tr>').join('')
+      +'</tbody></table>')
+    +'</div>'
+    +'<div class="card"><div class="card-title" style="margin-bottom:12px">최근 세션</div>'
+    +(recent5s.length===0?'<div class="empty"><div class="ei">&#x1F4CB;</div>세션 기록이 없습니다.</div>'
+      :'<div style="display:flex;flex-direction:column;gap:8px">'
+      +recent5s.map(s=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 11px;background:#f9fafb;border-radius:8px">'
+        +'<div><div style="font-weight:600;font-size:13px">'+s.name+'</div><div style="font-size:11px;color:#6b7280">'+s.type+(s.dur?' · '+s.dur+'분':'')+'</div></div>'
+        +'<div style="font-size:12px;color:#9ca3af">'+s.date+'</div></div>').join('')+'</div>')
+    +'</div></div>';
+}
+
+// ── 회원 목록 ─────────────────────────────────────────────────
+let curOrgFilter = '', curClientSort = 'join_desc';
+
+function refreshClients(){
+  document.getElementById('page').innerHTML = pgClients(document.getElementById('q')?document.getElementById('q').value:'');
+}
+
+function pgClients(q){
+  q = q||'';
+  const orgs = [...new Set(DB.clients.map(c=>c.org||'').filter(Boolean))].sort();
+
+  let list = DB.clients.filter(c=>{
+    const matchQ = !q || c.name.includes(q) || (c.phone||'').includes(q) || (c.org||'').includes(q);
+    const matchOrg = !curOrgFilter || (c.org||'') === curOrgFilter;
+    return matchQ && matchOrg;
+  });
+
+  if(curClientSort==='name')       list = [...list].sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+  else if(curClientSort==='org')   list = [...list].sort((a,b)=>(a.org||'').localeCompare(b.org||'','ko')||a.name.localeCompare(b.name,'ko'));
+  else if(curClientSort==='join_asc')  list = [...list].sort((a,b)=>(a.joindate||'').localeCompare(b.joindate||''));
+  else /* join_desc */             list = [...list].sort((a,b)=>(b.joindate||'').localeCompare(a.joindate||''));
+
+  const sortBtns = [
+    {k:'name',     l:'이름순'},
+    {k:'org',      l:'소속순'},
+    {k:'join_desc',l:'최신등록순'},
+    {k:'join_asc', l:'오래된순'},
+  ].map(s=>'<button onclick="curClientSort=\''+s.k+'\';refreshClients()" style="padding:5px 13px;font-size:12px;border-radius:20px;cursor:pointer;border:1.5px solid '+(curClientSort===s.k?'#2563eb':'#e5e7eb')+';background:'+(curClientSort===s.k?'#dbeafe':'#fff')+';color:'+(curClientSort===s.k?'#1e40af':'#374151')+';font-weight:'+(curClientSort===s.k?'700':'400')+';font-family:inherit">'+s.l+'</button>').join('');
+
+  const orgSel = '<select onchange="curOrgFilter=this.value;refreshClients()" style="padding:9px 13px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;font-family:inherit;background:#fff;color:#374151">'
+    +'<option value="">전체 소속</option>'
+    +orgs.map(o=>'<option value="'+o+'"'+(curOrgFilter===o?' selected':'')+'>'+o+'</option>').join('')
+    +'</select>';
+
+  return '<div class="searchbar">'
+    +'<input id="q" type="text" placeholder="이름, 연락처 또는 소속 검색..." value="'+q+'" oninput="refreshClients()">'
+    +(orgs.length ? orgSel : '')
+    +'<button class="btn btn-blue" onclick="openAdd()">+ 회원 추가</button></div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;align-items:center">'
+    +'<span style="font-size:11px;font-weight:700;color:#6b7280;margin-right:2px">정렬</span>'
+    +sortBtns
+    +'</div>'
+    +'<div class="card" style="padding:0;overflow:hidden">'
+    +'<table><thead><tr><th>이름</th><th>소속</th><th>성별/나이</th><th>연락처</th><th>목표</th><th>등록일</th><th>상태</th><th>관리</th></tr></thead><tbody>'
+    +(list.length===0?'<tr><td colspan="8"><div class="empty"><div class="ei">&#x1F464;</div>회원이 없습니다.</div></td></tr>'
+      :list.map(c=>'<tr onclick="nav(\'detail\',\''+c.id+'\')">'
+        +'<td><div style="display:flex;align-items:center;gap:9px"><div class="av" style="background:'+pal(c.name)+'">'+av2(c.name)+'</div>'
+        +'<div><div style="font-weight:600">'+c.name+'</div><div style="font-size:11px;color:#9ca3af">'+(c.job||'')+'</div></div></div></td>'
+        +'<td>'+(c.org?'<span class="badge b-green">'+c.org+'</span>':'-')+'</td>'
+        +'<td>'+(c.gender||'-')+' / '+(age(c.birth)!==null?age(c.birth)+'세':'-')+'</td>'
+        +'<td>'+(c.phone||'-')+'</td>'
+        +'<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis">'+(c.goal||'-')+'</td>'
+        +'<td>'+(c.joindate||'-')+'</td>'
+        +'<td>'+badge(c.status)+'</td>'
+        +'<td onclick="event.stopPropagation()">'
+        +'<button class="btn btn-ghost btn-sm" onclick="openEdit(\''+c.id+'\')">수정</button> '
+        +'<button class="btn btn-red btn-sm" onclick="delClient(\''+c.id+'\')">삭제</button></td>'
+        +'</tr>').join(''))
+    +'</tbody></table></div>';
+}
+
+function delClient(id){
+  if(!confirm('삭제하시겠습니까? 모든 기록이 사라집니다.')) return;
+  DB.clients = DB.clients.filter(c=>c.id!==id);
+  save(); if(curPage==='detail') nav('clients'); else render();
+}
+
+// ── 전체 세션 ─────────────────────────────────────────────────
+function pgSessions(){
+  const all = DB.clients.flatMap(c=>(c.sessions||[]).map((s,i)=>({...s,cn:c.name,cid:c.id,sidx:i}))).sort((a,b)=>b.date.localeCompare(a.date));
+  if(!all.length) return '<div class="card"><div class="empty"><div class="ei">&#x1F4CB;</div>세션 기록이 없습니다.</div></div>';
+  return '<div class="card">'
+    +all.slice(0,40).map(s=>{
+      const rows = (s.ex||'').split('\n').filter(Boolean);
+      return '<div class="s-card">'
+        +'<div class="s-head"><div>'
+        +'<span style="font-weight:700;color:#2563eb;cursor:pointer" onclick="nav(\'detail\',\''+s.cid+'\')">'+s.cn+'</span>'
+        +' <span style="color:#d1d5db;margin:0 6px">|</span>'
+        +'<span style="font-weight:600">'+s.date+'</span>'
+        +' <span class="badge b-green" style="margin-left:6px">'+s.type+'</span>'
+        +(s.dur?' <span style="font-size:11px;color:#9ca3af;margin-left:4px">&#x23F1; '+s.dur+'분</span>':'')
+        +'</div><div style="display:flex;gap:4px">'
+        +'<button class="btn btn-ghost btn-sm" onclick="editSessionGlobal(\''+s.cid+'\','+s.sidx+')">수정</button>'
+        +'<button class="btn btn-red btn-sm" onclick="delSessionGlobal(\''+s.cid+'\','+s.sidx+')">삭제</button>'
+        +'</div></div>'
+        +(rows.length?'<div class="s-ex">'+rows.slice(0,3).map(r=>{const p=r.split('|');return'<div class="s-ex-row"><span style="font-weight:600">'+(p[0]||'').trim()+'</span><span style="color:#6b7280">'+(p[1]||'').trim()+'</span></div>';}).join('')+(rows.length>3?'<div style="font-size:11px;color:#9ca3af;padding:3px 0">+'+( rows.length-3)+'개 더</div>':'')+'</div>':'')
+        +(s.note?'<div class="s-note">'+s.note+'</div>':'')
+        +'</div>';
+    }).join('')
+    +(all.length>40?'<div style="text-align:center;font-size:13px;color:#9ca3af;padding:12px">최근 40개만 표시합니다.</div>':'')
+    +'</div>';
+}
+
+function editSessionGlobal(cid, idx){ curId=cid; openEditSession(idx); }
+function delSessionGlobal(cid, idx){ curId=cid; delSession(idx); }
+
+// ── 단체운동 ──────────────────────────────────────────────────
+function pgGroupSessions(){
+  const gs=[...(DB.groupSessions||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  let html='<div class="card"><div class="card-head"><span class="card-title">단체운동 기록</span><button class="btn btn-blue btn-sm" onclick="openGroup()">+ 추가</button></div>';
+  if(!gs.length){
+    html+='<div class="empty"><div class="ei">&#x1F46F;</div>단체운동 기록이 없습니다.</div>';
+  } else {
+    gs.forEach(g=>{
+      const members=(g.members||[]).map(id=>find(id)).filter(Boolean);
+      html+='<div class="s-card"><div class="s-head"><div>'
+        +'<span style="font-weight:700">'+g.date+'</span>'
+        +(g.name?' <span style="font-weight:600;color:#2563eb;margin-left:6px">'+g.name+'</span>':'')
+        +(g.type?' <span class="badge b-green" style="margin-left:6px">'+g.type+'</span>':'')
+        +(g.dur?' <span style="font-size:11px;color:#9ca3af;margin-left:4px">&#x23F1; '+g.dur+'분</span>':'')
+        +' <span class="badge b-gray" style="margin-left:6px">'+members.length+'명 참가</span>'
+        +'</div><div style="display:flex;gap:4px">'
+        +'<button class="btn btn-blue btn-sm" onclick="navGroupDetail(\''+g.id+'\')">상세 보기</button>'
+        +'<button class="btn btn-ghost btn-sm" onclick="openEditGroup(\''+g.id+'\')">수정</button>'
+        +'<button class="btn btn-red btn-sm" onclick="delGroup(\''+g.id+'\')">삭제</button>'
+        +'</div></div>';
+      if(members.length){
+        html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
+        members.forEach(m=>{
+          html+='<span onclick="nav(\'detail\',\''+m.id+'\')" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:#f0f2f5;border-radius:20px;padding:3px 10px;font-size:12px;transition:background .1s" onmouseenter="this.style.background=\'#dbeafe\'" onmouseleave="this.style.background=\'#f0f2f5\'">'
+            +'<span class="av" style="background:'+pal(m.name)+';width:20px;height:20px;font-size:9px;flex-shrink:0">'+av2(m.name)+'</span>'+m.name+'</span>';
+        });
+        html+='</div>';
+      }
+      if(g.note) html+='<div class="s-note">&#x1F4DD; '+g.note+'</div>';
+      html+='</div>';
+    });
+  }
+  return html+'</div>';
+}
+
+let editGroupId = null;
+
+function renderSessionLogMembers(selectedIds){
+  const g=(DB.groupSessions||[]).find(x=>x.id===curGroupId);
+  const el=document.getElementById('sl-members');
+  if(!el||!g) return;
+  const members=(g.members||[]).map(id=>find(id)).filter(Boolean);
+  if(!members.length){el.innerHTML='<span style="color:#9ca3af;font-size:12px">등록된 회원이 없습니다.</span>';return;}
+  el.innerHTML=members.map(c=>{
+    const on=selectedIds===null||(selectedIds||[]).includes(c.id);
+    return '<label style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;cursor:pointer;border:1.5px solid '+(on?'#d97706':'#e5e7eb')+';background:'+(on?'#fef3c7':'#fff')+';font-size:12px;user-select:none;transition:all .1s" onclick="toggleSLM(this)">'
+      +'<span class="av" style="background:'+pal(c.name)+';width:22px;height:22px;font-size:9px;flex-shrink:0">'+av2(c.name)+'</span>'
+      +c.name
+      +(c.status!=='active'?'<span style="font-size:10px;color:#9ca3af">('+( c.status==='pause'?'정지':'종료')+')</span>':'')
+      +'<input type="checkbox" style="display:none" value="'+c.id+'"'+(on?' checked':'')+'>'
+      +'</label>';
+  }).join('');
+}
+function toggleSLM(lbl){
+  const cb=lbl.querySelector('input');
+  cb.checked=!cb.checked;
+  lbl.style.borderColor=cb.checked?'#d97706':'#e5e7eb';
+  lbl.style.background=cb.checked?'#fef3c7':'#fff';
+}
+
+function renderGroupMembers(selectedIds){
+  const el=document.getElementById('gr-members');
+  if(!el) return;
+  const clients=DB.clients;
+  if(!clients.length){el.innerHTML='<span style="color:#9ca3af;font-size:12px">등록된 회원이 없습니다.</span>';return;}
+  el.innerHTML=clients.map(c=>{
+    const on=(selectedIds||[]).includes(c.id);
+    return '<label style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;cursor:pointer;border:1.5px solid '+(on?'#2563eb':'#e5e7eb')+';background:'+(on?'#dbeafe':'#fff')+';font-size:12px;user-select:none;transition:all .1s" onclick="toggleGM(this)">'
+      +'<span class="av" style="background:'+pal(c.name)+';width:22px;height:22px;font-size:9px;flex-shrink:0">'+av2(c.name)+'</span>'
+      +c.name
+      +(c.status!=='active'?'<span style="font-size:10px;color:#9ca3af">('+( c.status==='pause'?'정지':'종료')+')</span>':'')
+      +'<input type="checkbox" style="display:none" value="'+c.id+'"'+(on?' checked':'')+'>'
+      +'</label>';
+  }).join('');
+}
+
+function toggleGM(lbl){
+  const cb=lbl.querySelector('input');
+  cb.checked=!cb.checked;
+  lbl.style.borderColor=cb.checked?'#2563eb':'#e5e7eb';
+  lbl.style.background=cb.checked?'#dbeafe':'#fff';
+}
+
+function openGroup(){
+  editGroupId=null;
+  document.getElementById('m-group-title').textContent='단체운동 기록';
+  sv('gr-date',new Date().toISOString().slice(0,10));
+  sv('gr-name',''); sv('gr-dur',''); sv('gr-note','');
+  populateSelects();
+  renderGroupMembers([]);
+  show('m-group');
+}
+
+function openEditGroup(id){
+  editGroupId=id;
+  const g=(DB.groupSessions||[]).find(x=>x.id===id);
+  if(!g) return;
+  document.getElementById('m-group-title').textContent='단체운동 수정';
+  sv('gr-date',g.date); sv('gr-name',g.name||''); sv('gr-dur',g.dur||''); sv('gr-note',g.note||'');
+  populateSelects();
+  sv('gr-type',g.type||'');
+  renderGroupMembers(g.members||[]);
+  show('m-group');
+}
+
+function delGroup(id){
+  if(!confirm('삭제하시겠습니까?')) return;
+  DB.groupSessions=(DB.groupSessions||[]).filter(g=>g.id!==id);
+  save(); render();
+}
+
+document.getElementById('btn-save-group').addEventListener('click', function(){
+  const date=v('gr-date');
+  if(!date){alert('날짜를 입력해주세요.');return;}
+  const members=[...document.querySelectorAll('#gr-members input[type=checkbox]:checked')].map(cb=>cb.value);
+  const rec={date,name:v('gr-name'),type:v('gr-type'),dur:v('gr-dur'),note:v('gr-note'),members};
+  if(editGroupId){
+    const idx=(DB.groupSessions||[]).findIndex(g=>g.id===editGroupId);
+    if(idx>=0) DB.groupSessions[idx]={...DB.groupSessions[idx],...rec};
+  } else {
+    rec.id=uid();
+    DB.groupSessions.push(rec);
+  }
+  DB.groupSessions.sort((a,b)=>a.date.localeCompare(b.date));
+  save(); hide('m-group'); render();
+});
+
+function navGroupDetail(id){ curGroupId=id; curGroupTab='plans'; curPlanFilter=null; nav('group-detail'); }
+
+// ── 단체운동 상세 ─────────────────────────────────────────────
+function pgGroupDetail(){
+  const g=(DB.groupSessions||[]).find(x=>x.id===curGroupId);
+  if(!g) return '<p>단체운동을 찾을 수 없습니다.</p>';
+  const members=(g.members||[]).map(id=>find(id)).filter(Boolean);
+  const plans=[...(g.weeklyPlans||[])].sort((a,b)=>a.week-b.week);
+  const logs=[...(g.sessionLogs||[])].sort((a,b)=>b.date.localeCompare(a.date));
+
+  let h='<button class="btn btn-gray btn-sm" onclick="nav(\'groups\')" style="margin-bottom:14px">&larr; 단체운동 목록</button>';
+
+  h+='<div class="dhead">'
+    +'<div class="av-lg" style="background:#7c3aed">&#x1F46F;</div>'
+    +'<div class="dinfo" style="flex:1">'
+    +'<div style="display:flex;align-items:center;gap:10px"><h2>'+(g.name||'수업명 없음')+'</h2>'
+    +(g.type?'<span class="badge b-green">'+g.type+'</span>':'')+'</div>'
+    +'<div class="sub">'+(g.dur?g.dur+'분':'')+((g.dur&&g.date)?' · ':'')+( g.date?'시작일 '+g.date:'')+'</div>'
+    +'<div class="chips" style="margin-top:8px">'
+    +members.map(m=>'<span onclick="nav(\'detail\',\''+m.id+'\')" class="chip" style="cursor:pointer;background:#dbeafe;color:#1e40af;display:inline-flex;align-items:center;gap:5px">'
+      +'<span class="av" style="background:'+pal(m.name)+';width:18px;height:18px;font-size:8px">'+av2(m.name)+'</span>'+m.name+'</span>').join('')
+    +'</div></div>'
+    +'<button class="btn btn-ghost btn-sm" onclick="openEditGroup(\''+g.id+'\')">&#x270F; 수정</button>'
+    +'</div>';
+
+  if(g.note) h+='<div class="info-box">&#x1F4DD; '+g.note+'</div>';
+
+  h+='<div class="tabs">'
+    +'<button class="tab'+(curGroupTab==='plans'?' on':'')+'" onclick="switchGroupTab(\'plans\')">주차별 계획 ('+plans.length+'주)</button>'
+    +'<button class="tab'+(curGroupTab==='logs'?' on':'')+'" onclick="switchGroupTab(\'logs\')">세션 기록 ('+logs.length+'회)</button>'
+    +'<button class="tab'+(curGroupTab==='attendance'?' on':'')+'" onclick="switchGroupTab(\'attendance\')">출석률</button>'
+    +'</div>';
+
+  // 주차별 계획 탭
+  const allExNames=[...new Set(plans.flatMap(p=>(p.exercises||'').split('\n').filter(Boolean).map(line=>line.split('|')[0].trim())))].filter(Boolean).sort();
+  h+='<div id="gpane-plans" class="pane'+(curGroupTab==='plans'?' on':'')+'"><div class="card">'
+    +'<div class="card-head"><span class="card-title">주차별 운동 계획</span><button class="btn btn-blue btn-sm" onclick="openWeekPlan()">+ 주차 추가</button></div>';
+  if(allExNames.length){
+    h+='<div style="padding:0 0 12px">'
+      +'<button onclick="togglePlanFilter()" style="display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;color:#6b7280;padding:0 0 8px">'
+      +'<span style="font-size:10px;transition:transform .2s;display:inline-block;transform:'+(curPlanFilterOpen?'rotate(90deg)':'rotate(0deg)')+'">▶</span> 필터'+(curPlanFilter!==null?' <span style="color:#7c3aed">· '+curPlanFilter+'</span>':'')+'</button>'
+      +'<div id="plan-filter-body" style="display:'+(curPlanFilterOpen?'flex':'none')+';flex-wrap:wrap;gap:6px;align-items:center">'
+      +'<button id="wpf-all" onclick="filterWeekPlans(null)" style="padding:4px 12px;font-size:12px;border:1.5px solid '+(curPlanFilter===null?'#2563eb':'#e5e7eb')+';background:'+(curPlanFilter===null?'#dbeafe':'#fff')+';color:'+(curPlanFilter===null?'#1e40af':'#374151')+';border-radius:20px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s">전체</button>'
+      +allExNames.map(n=>'<button onclick="filterWeekPlans(\''+n.replace(/'/g,"\\'")+'\')" style="padding:4px 12px;font-size:12px;border:1.5px solid '+(curPlanFilter===n?'#7c3aed':'#e5e7eb')+';background:'+(curPlanFilter===n?'#ede9fe':'#fff')+';color:'+(curPlanFilter===n?'#5b21b6':'#374151')+';border-radius:20px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s">'+n+'</button>').join('')
+      +'</div></div>';
+  }
+  if(!plans.length){
+    h+='<div class="empty"><div class="ei">&#x1F4CB;</div>등록된 주차 계획이 없습니다.<br><small style="font-size:12px;margin-top:6px;display:block">+ 주차 추가 버튼으로 운동 계획을 작성하세요.</small></div>';
+  } else {
+    plans.forEach(p=>{
+      const oi=(g.weeklyPlans||[]).findIndex(x=>x===p);
+      const exNames=(p.exercises||'').split('\n').filter(Boolean).map(line=>line.split('|')[0].trim());
+      const hidden=curPlanFilter&&!exNames.includes(curPlanFilter);
+      h+='<div class="s-card wp-card" data-exs="'+exNames.join('|')+'"'+(hidden?' style="display:none"':'')+'>'+
+        '<div class="s-head"><div>'
+        +'<span style="background:#dbeafe;color:#1e40af;border-radius:6px;padding:3px 11px;font-size:12px;font-weight:700">'+p.week+'주차</span>'
+        +(p.start?' <span style="font-size:12px;color:#6b7280;margin-left:8px">&#x1F4C5; '+p.start+(p.end?' ~ '+p.end:'')+'</span>':'')
+        +(p.focus?' <span style="font-weight:600;color:#374151;margin-left:8px">&#x1F3AF; '+p.focus+'</span>':'')
+        +'</div><div style="display:flex;gap:4px">'
+        +'<button class="btn btn-ghost btn-sm" onclick="openEditWeekPlan('+oi+')">수정</button>'
+        +'<button class="btn btn-red btn-sm" onclick="delWeekPlan('+oi+')">삭제</button>'
+        +'</div></div>'
+        +(p.exercises?'<div style="background:#f9fafb;border-radius:6px;padding:10px 12px;font-size:12px;white-space:pre-wrap;margin-top:8px;line-height:1.8;color:#374151;border-left:3px solid #dbeafe">'
+          +exNames.map((n,i)=>{const detail=(p.exercises.split('\n')[i]||'').split('|')[1];return '<span style="font-weight:600">'+(curPlanFilter===n?'<mark style="background:#ede9fe;border-radius:3px;padding:0 2px">'+n+'</mark>':n)+'</span>'+(detail?' <span style="color:#9ca3af">'+detail.trim()+'</span>':'');}).join('\n')
+          +'</div>':'')
+        +(p.memo?'<div style="margin-top:6px;font-size:12px;color:#6b7280;background:#f9fafb;border-radius:6px;padding:7px 12px;white-space:pre-wrap">&#x1F4DD; '+p.memo+'</div>':'')
+        +'</div>';
+    });
+  }
+  h+='</div></div>';
+
+  // 세션 기록 탭
+  const allLogExNames=[...new Set(logs.flatMap(l=>(l.actual||'').split('\n').filter(Boolean).map(line=>line.split('|')[0].trim())))].filter(Boolean).sort();
+  h+='<div id="gpane-logs" class="pane'+(curGroupTab==='logs'?' on':'')+'"><div class="card">'
+    +'<div class="card-head"><span class="card-title">세션 기록</span><button class="btn btn-blue btn-sm" onclick="openSessionLog()">+ 세션 기록</button></div>';
+  if(allLogExNames.length){
+    h+='<div style="padding:0 0 12px">'
+      +'<button onclick="toggleLogFilter()" style="display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;color:#6b7280;padding:0 0 8px">'
+      +'<span style="font-size:10px;transition:transform .2s;display:inline-block;transform:'+(curLogFilterOpen?'rotate(90deg)':'rotate(0deg)')+'">▶</span> 필터'+(curLogFilter!==null?' <span style="color:#059669">· '+curLogFilter+'</span>':'')+'</button>'
+      +'<div id="log-filter-body" style="display:'+(curLogFilterOpen?'flex':'none')+';flex-wrap:wrap;gap:6px;align-items:center">'
+      +'<button id="slf-all" onclick="filterSessionLogs(null)" style="padding:4px 12px;font-size:12px;border:1.5px solid '+(curLogFilter===null?'#2563eb':'#e5e7eb')+';background:'+(curLogFilter===null?'#dbeafe':'#fff')+';color:'+(curLogFilter===null?'#1e40af':'#374151')+';border-radius:20px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s">전체</button>'
+      +allLogExNames.map(n=>'<button onclick="filterSessionLogs(\''+n.replace(/'/g,"\\'")+'\')" style="padding:4px 12px;font-size:12px;border:1.5px solid '+(curLogFilter===n?'#059669':'#e5e7eb')+';background:'+(curLogFilter===n?'#d1fae5':'#fff')+';color:'+(curLogFilter===n?'#065f46':'#374151')+';border-radius:20px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s">'+n+'</button>').join('')
+      +'</div></div>';
+  }
+  if(!logs.length){
+    h+='<div class="empty"><div class="ei">&#x1F3CB;</div>세션 기록이 없습니다.<br><small style="font-size:12px;margin-top:6px;display:block">+ 세션 기록 버튼으로 진행한 운동을 기록하세요.</small></div>';
+  } else {
+    logs.forEach(l=>{
+      const oi=(g.sessionLogs||[]).findIndex(x=>x.id===l.id);
+      const logExNames=(l.actual||'').split('\n').filter(Boolean).map(line=>line.split('|')[0].trim());
+      const hidden=curLogFilter&&!logExNames.includes(curLogFilter);
+      h+='<div class="s-card sl-card" data-exs="'+logExNames.join('|')+'"'+(hidden?' style="display:none"':'')+'>'+
+        '<div class="s-head"><div>'
+        +'<span style="font-weight:700">'+l.date+(l.end?' ~ '+l.end:'')+'</span>'
+        +(l.week?' <span style="background:#dbeafe;color:#1e40af;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px">'+l.week+'주차</span>':'')
+        +(l.attendance?' <span class="badge b-gray" style="margin-left:6px">&#x1F465; '+l.attendance+'명</span>':'')
+        +'</div><div style="display:flex;gap:4px">'
+        +'<button class="btn btn-ghost btn-sm" onclick="openEditSessionLog('+oi+')">수정</button>'
+        +'<button class="btn btn-red btn-sm" onclick="delSessionLog('+oi+')">삭제</button>'
+        +'</div></div>'
+        +((l.attendees&&l.attendees.length)?'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding:8px;background:#fffbeb;border-radius:8px;border:1px solid #fde68a">'+l.attendees.map(id=>{const c=find(id);return c?'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:600"><span class="av" style="background:'+pal(c.name)+';width:16px;height:16px;font-size:7px;flex-shrink:0">'+av2(c.name)+'</span>'+c.name+'</span>':''}).filter(Boolean).join('')+'</div>':'')
+        +(l.actual?'<div style="background:#f9fafb;border-radius:6px;padding:10px 12px;font-size:12px;white-space:pre-wrap;margin-top:8px;line-height:1.8;color:#374151;border-left:3px solid #d1fae5">'
+          +logExNames.map((n,i)=>{const detail=(l.actual.split('\n')[i]||'').split('|')[1];return '<span style="font-weight:600">'+(curLogFilter===n?'<mark style="background:#d1fae5;border-radius:3px;padding:0 2px">'+n+'</mark>':n)+'</span>'+(detail?' <span style="color:#9ca3af">'+detail.trim()+'</span>':'');}).join('\n')
+          +'</div>':'')
+        +(l.note?'<div class="s-note">&#x1F4DD; '+l.note+'</div>':'')
+        +'</div>';
+    });
+  }
+  h+='</div></div>';
+
+  // 출석률 탭
+  h+='<div id="gpane-attendance" class="pane'+(curGroupTab==='attendance'?' on':'')+'"><div class="card">'
+    +'<div class="card-head"><span class="card-title">&#x1F4CA; 회원별 출석률</span>'
+    +(logs.length?'<span style="font-size:12px;color:#6b7280">총 '+logs.length+'회 기준</span>':'')
+    +'</div>';
+  if(!members.length){
+    h+='<div class="empty"><div class="ei">&#x1F465;</div>등록된 회원이 없습니다.</div>';
+  } else if(!logs.length){
+    h+='<div class="empty"><div class="ei">&#x1F4CB;</div>세션 기록이 없어 출석률을 계산할 수 없습니다.</div>';
+  } else {
+    const total=logs.length;
+    const stats=members.map(m=>{
+      const attended=(g.sessionLogs||[]).filter(l=>(l.attendees||[]).includes(m.id)).length;
+      return {m, attended, rate:total?Math.round(attended/total*100):0};
+    }).sort((a,b)=>b.rate-a.rate);
+    h+='<div style="padding:4px 0">';
+    stats.forEach(s=>{
+      const col=s.rate>=80?'#16a34a':s.rate>=60?'#d97706':'#ef4444';
+      const bg=s.rate>=80?'#dcfce7':s.rate>=60?'#fef9c3':'#fee2e2';
+      h+='<div style="display:flex;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid #f3f4f6">'
+        +'<span onclick="nav(\'detail\',\''+s.m.id+'\')" style="display:inline-flex;align-items:center;gap:7px;cursor:pointer;min-width:90px;font-weight:600;font-size:13px">'
+        +'<span class="av" style="background:'+pal(s.m.name)+';width:28px;height:28px;font-size:11px;flex-shrink:0">'+av2(s.m.name)+'</span>'
+        +s.m.name+'</span>'
+        +'<div style="flex:1">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
+        +'<span style="font-size:12px;color:#6b7280">'+s.attended+' / '+total+'회</span>'
+        +'<span style="font-size:13px;font-weight:700;color:'+col+'">'+s.rate+'%</span>'
+        +'</div>'
+        +'<div style="background:#f3f4f6;border-radius:99px;height:8px;overflow:hidden">'
+        +'<div style="width:'+s.rate+'%;height:100%;background:'+col+';border-radius:99px;transition:width .4s"></div>'
+        +'</div></div>'
+        +'<span style="background:'+bg+';color:'+col+';border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;min-width:44px;text-align:center">'
+        +(s.rate>=80?'우수':s.rate>=60?'보통':'미흡')+'</span>'
+        +'</div>';
+    });
+    h+='</div>';
+  }
+  h+='</div></div>';
+
+  return h;
+}
+
+function switchGroupTab(tab){
+  curGroupTab=tab;
+  if(tab!=='plans') curPlanFilter=null;
+  if(tab!=='logs') curLogFilter=null;
+  document.querySelectorAll('#gpane-plans,#gpane-logs,#gpane-attendance').forEach(p=>p.classList.remove('on'));
+  const el=document.getElementById('gpane-'+tab);
+  if(el) el.classList.add('on');
+  document.querySelectorAll('.tab').forEach(b=>{
+    if(b.textContent.includes('주차별')) b.classList.toggle('on',tab==='plans');
+    if(b.textContent.includes('세션 기록')) b.classList.toggle('on',tab==='logs');
+    if(b.textContent.includes('출석률')) b.classList.toggle('on',tab==='attendance');
+  });
+}
+
+function filterSessionLogs(name){
+  curLogFilter=name;
+  document.querySelectorAll('.sl-card').forEach(card=>{
+    const exs=card.dataset.exs?card.dataset.exs.split('|'):[];
+    card.style.display=(name===null||exs.includes(name))?'':'none';
+  });
+  document.querySelectorAll('#gpane-logs button[onclick^="filterSessionLogs"]').forEach(btn=>{
+    const active=name!==null&&btn.textContent.trim()===name;
+    btn.style.borderColor=active?'#059669':'#e5e7eb';
+    btn.style.background=active?'#d1fae5':'#fff';
+    btn.style.color=active?'#065f46':'#374151';
+  });
+  const allBtn=document.getElementById('slf-all');
+  if(allBtn){
+    allBtn.style.borderColor=name===null?'#2563eb':'#e5e7eb';
+    allBtn.style.background=name===null?'#dbeafe':'#fff';
+    allBtn.style.color=name===null?'#1e40af':'#374151';
+  }
+}
+
+function togglePlanFilter(){
+  curPlanFilterOpen=!curPlanFilterOpen;
+  const body=document.getElementById('plan-filter-body');
+  const arrow=document.querySelector('[onclick="togglePlanFilter()"] span');
+  if(body) body.style.display=curPlanFilterOpen?'flex':'none';
+  if(arrow) arrow.style.transform=curPlanFilterOpen?'rotate(90deg)':'rotate(0deg)';
+}
+function toggleLogFilter(){
+  curLogFilterOpen=!curLogFilterOpen;
+  const body=document.getElementById('log-filter-body');
+  const arrow=document.querySelector('[onclick="toggleLogFilter()"] span');
+  if(body) body.style.display=curLogFilterOpen?'flex':'none';
+  if(arrow) arrow.style.transform=curLogFilterOpen?'rotate(90deg)':'rotate(0deg)';
+}
+function filterWeekPlans(name){
+  curPlanFilter=name;
+  document.querySelectorAll('.wp-card').forEach(card=>{
+    const exs=card.dataset.exs?card.dataset.exs.split('|'):[];
+    card.style.display=(name===null||exs.includes(name))?'':'none';
+  });
+  document.querySelectorAll('#gpane-plans button[onclick^="filterWeekPlans"]').forEach(btn=>{
+    const btnName=btn.textContent.trim();
+    const active=name!==null&&btnName===name;
+    btn.style.borderColor=active?'#7c3aed':'#e5e7eb';
+    btn.style.background=active?'#ede9fe':'#fff';
+    btn.style.color=active?'#5b21b6':'#374151';
+  });
+  const allBtn=document.getElementById('wpf-all');
+  if(allBtn){
+    allBtn.style.borderColor=name===null?'#2563eb':'#e5e7eb';
+    allBtn.style.background=name===null?'#dbeafe':'#fff';
+    allBtn.style.color=name===null?'#1e40af':'#374151';
+  }
+  // 필터된 상태에서 매칭 운동명 하이라이트 업데이트
+  document.querySelectorAll('.wp-card').forEach(card=>{
+    if(card.style.display==='none') return;
+    const lines=card.querySelectorAll('[data-line]');
+    lines.forEach(l=>{
+      if(name&&l.dataset.line===name) l.style.background='#ede9fe';
+      else l.style.background='';
+    });
+  });
+}
+
+// ── 주차 계획 CRUD ────────────────────────────────────────────
+let editWeekPlanIdx = null;
+let weekPlanExercises = [];
+let wpEditExIdx = null;
+
+function renderWeekPlanExercises(){
+  const el = document.getElementById('wp-ex-chips');
+  if(!el) return;
+  if(!weekPlanExercises.length){
+    el.innerHTML='<span style="color:#adb5bd;font-size:12px">운동을 추가해주세요</span>';
+    return;
+  }
+  el.innerHTML = weekPlanExercises.map((ex,i)=>{
+    const parts=ex.split('|');
+    const name=parts[0].trim();
+    const detail=parts[1]?parts[1].trim():'';
+    const editing=wpEditExIdx===i;
+    return '<div style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:'+(editing?'#c4b5fd':'#ede9fe')+';border-radius:7px;width:100%;box-sizing:border-box;'+(editing?'outline:2px solid #7c3aed;':'')+'}">'
+      +'<span style="font-size:11px;font-weight:700;color:#a78bfa;min-width:18px;text-align:right">'+(i+1)+'.</span>'
+      +'<span style="flex:1;font-size:12px;color:#5b21b6;font-weight:600">'+name+(detail?' <span style="color:#a78bfa;font-weight:400">'+detail+'</span>':'')+'</span>'
+      +'<div style="display:flex;gap:2px;flex-shrink:0">'
+      +'<button type="button" onclick="startEditWpEx('+i+')" style="background:none;border:none;cursor:pointer;padding:2px 5px;font-size:12px;color:#7c3aed" title="수정">&#x270F;</button>'
+      +'<button type="button" onclick="moveWeekPlanEx('+i+',-1)" style="background:none;border:none;cursor:pointer;padding:2px 5px;font-size:12px;color:'+(i===0?'#d1d5db':'#7c3aed')+'" '+(i===0?'disabled':'')+'>▲</button>'
+      +'<button type="button" onclick="moveWeekPlanEx('+i+',1)" style="background:none;border:none;cursor:pointer;padding:2px 5px;font-size:12px;color:'+(i===weekPlanExercises.length-1?'#d1d5db':'#7c3aed')+'" '+(i===weekPlanExercises.length-1?'disabled':'')+'>▼</button>'
+      +'<button type="button" onclick="removeWeekPlanExercise('+i+')" style="background:none;border:none;cursor:pointer;padding:2px 5px;font-size:12px;color:#a78bfa">&#x2715;</button>'
+      +'</div></div>';
+  }).join('');
+}
+function moveWeekPlanEx(i, dir){
+  const j=i+dir;
+  if(j<0||j>=weekPlanExercises.length) return;
+  [weekPlanExercises[i],weekPlanExercises[j]]=[weekPlanExercises[j],weekPlanExercises[i]];
+  if(wpEditExIdx===i) wpEditExIdx=j;
+  else if(wpEditExIdx===j) wpEditExIdx=i;
+  renderWeekPlanExercises();
+}
+function startEditWpEx(i){
+  wpEditExIdx=i;
+  const ex=weekPlanExercises[i];
+  const parts=ex.split('|');
+  const name=parts[0].trim();
+  const detail=parts[1]?parts[1].trim():'';
+  document.getElementById('wp-ex-name').value=name;
+  let sets='',reps='',weight='',mins='';
+  detail.split(' / ').forEach(seg=>{
+    if(seg.includes('×')){ const p=seg.split('×'); sets=p[0]; reps=p[1]; }
+    else if(seg.endsWith('kg')) weight=seg.slice(0,-2);
+    else if(seg.endsWith('분')) mins=seg.slice(0,-1);
+  });
+  document.getElementById('wp-ex-sets').value=sets;
+  document.getElementById('wp-ex-reps').value=reps;
+  document.getElementById('wp-ex-weight').value=weight;
+  document.getElementById('wp-ex-mins').value=mins;
+  const btn=document.querySelector('[onclick="addWeekPlanExercise()"]');
+  if(btn) btn.textContent='수정';
+  document.getElementById('wp-ex-name').focus();
+  renderWeekPlanExercises();
+}
+function addWeekPlanExercise(){
+  const name=(document.getElementById('wp-ex-name').value||'').trim();
+  const sets=document.getElementById('wp-ex-sets').value.trim();
+  const reps=document.getElementById('wp-ex-reps').value.trim();
+  const weight=document.getElementById('wp-ex-weight').value.trim();
+  const mins=document.getElementById('wp-ex-mins').value.trim();
+  if(!name) return;
+  let detail='';
+  if(sets||reps) detail=(sets||'?')+'×'+(reps||'?');
+  if(weight) detail+=(detail?' / ':'')+weight+'kg';
+  if(mins) detail+=(detail?' / ':'')+mins+'분';
+  const val=name+(detail?' | '+detail:'');
+  if(wpEditExIdx!==null){ weekPlanExercises[wpEditExIdx]=val; wpEditExIdx=null; }
+  else weekPlanExercises.push(val);
+  document.getElementById('wp-ex-name').value='';
+  document.getElementById('wp-ex-sets').value='';
+  document.getElementById('wp-ex-reps').value='';
+  document.getElementById('wp-ex-weight').value='';
+  document.getElementById('wp-ex-mins').value='';
+  const btn=document.querySelector('[onclick="addWeekPlanExercise()"]');
+  if(btn) btn.textContent='추가';
+  document.getElementById('wp-ex-name').focus();
+  renderWeekPlanExercises();
+}
+function removeWeekPlanExercise(i){
+  if(wpEditExIdx===i){ wpEditExIdx=null; const btn=document.querySelector('[onclick="addWeekPlanExercise()"]'); if(btn) btn.textContent='추가'; }
+  weekPlanExercises.splice(i,1);
+  renderWeekPlanExercises();
+}
+
+function openWeekPlan(){
+  editWeekPlanIdx=null; wpEditExIdx=null;
+  document.getElementById('m-week-plan-title').textContent='주차 계획 추가';
+  sv('wp-week',''); sv('wp-focus',''); sv('wp-start',''); sv('wp-end',''); sv('wp-memo','');
+  weekPlanExercises=[];
+  epActiveCat['weekplan']=null;
+  EP_IDS.forEach(t=>{ const p=document.getElementById('ep-'+t); if(p) p.style.display='none'; const b=document.getElementById('ep-'+t+'-btn'); if(b) b.textContent='+ 운동 선택'; });
+  renderWeekPlanExercises();
+  show('m-week-plan');
+}
+
+function openEditWeekPlan(idx){
+  editWeekPlanIdx=idx;
+  const g=(DB.groupSessions||[]).find(x=>x.id===curGroupId);
+  if(!g) return;
+  const p=(g.weeklyPlans||[])[idx];
+  if(!p) return;
+  document.getElementById('m-week-plan-title').textContent='주차 계획 수정';
+  sv('wp-week',p.week); sv('wp-focus',p.focus||''); sv('wp-start',p.start||''); sv('wp-end',p.end||''); sv('wp-memo',p.memo||'');
+  weekPlanExercises=(p.exercises||'').split('\n').filter(Boolean);
+  renderWeekPlanExercises();
+  show('m-week-plan');
+}
+
+function delWeekPlan(idx){
+  if(!confirm('삭제하시겠습니까?')) return;
+  const g=(DB.groupSessions||[]).find(x=>x.id===curGroupId);
+  if(!g||!g.weeklyPlans) return;
+  g.weeklyPlans.splice(idx,1);
+  save(); render();
+}
+
+document.getElementById('btn-save-week-plan').addEventListener('click',function(){
+  const week=v('wp-week');
+  if(!week){alert('주차를 입력해주세요.');return;}
+  const g=(DB.groupSessions||[]).find(x=>x.id===curGroupId);
+  if(!g) return;
+  if(!g.weeklyPlans) g.weeklyPlans=[];
+  const rec={week:parseInt(week),focus:v('wp-focus'),start:v('wp-start'),end:v('wp-end'),exercises:weekPlanExercises.join('\n'),memo:v('wp-memo')};
+  if(editWeekPlanIdx!==null) g.weeklyPlans[editWeekPlanIdx]=rec;
+  else { g.weeklyPlans.push(rec); g.weeklyPlans.sort((a,b)=>a.week-b.week); }
+  save(); hide('m-week-plan'); render();
+});
+
+// ── 세션 기록 CRUD ────────────────────────────────────────────
+let editSessionLogIdx = null;
+
+function openSessionLog(){
+  editSessionLogIdx=null; slEditExIdx=null;
+  document.getElementById('m-session-log-title').textContent='세션 기록 추가';
+  sv('sl-date',new Date().toISOString().slice(0,10));
+  sv('sl-end',''); sv('sl-week',''); sv('sl-note','');
+  sessionLogExercises=[];
+  EP_IDS.forEach(t=>{ const p=document.getElementById('ep-'+t); if(p) p.style.display='none'; const b=document.getElementById('ep-'+t+'-btn'); if(b) b.textContent='+ 운동 선택'; });
+  renderSessionLogExercises();
+  renderSessionLogMembers(null);
+  show('m-session-log');
+}
+
+function openEditSessionLog(idx){
+  editSessionLogIdx=idx;
+  const g=(DB.groupSessions||[]).find(x=>x.id===curGroupId);
+  if(!g) return;
+  const l=(g.sessionLogs||[])[idx];
+  if(!l) return;
+  document.getElementById('m-session-log-title').textContent='세션 기록 수정';
+  sv('sl-date',l.date); sv('sl-end',l.end||''); sv('sl-week',l.week||'');
+  sv('sl-note',l.note||'');
+  sessionLogExercises=(l.actual||'').split('\n').filter(Boolean);
+  EP_IDS.forEach(t=>{ const p=document.getElementById('ep-'+t); if(p) p.style.display='none'; const b=document.getElementById('ep-'+t+'-btn'); if(b) b.textContent='+ 운동 선택'; });
+  renderSessionLogMembers(l.attendees||[]);
+  renderSessionLogExercises();
+  show('m-session-log');
+}
+
+function delSessionLog(idx){
+  if(!confirm('삭제하시겠습니까?')) return;
+  const g=(DB.groupSessions||[]).find(x=>x.id===curGroupId);
+  if(!g||!g.sessionLogs) return;
+  g.sessionLogs.splice(idx,1);
+  save(); render();
+}
+
+document.getElementById('btn-save-session-log').addEventListener('click',function(){
+  const date=v('sl-date');
+  if(!date){alert('날짜를 입력해주세요.');return;}
+  const g=(DB.groupSessions||[]).find(x=>x.id===curGroupId);
+  if(!g) return;
+  if(!g.sessionLogs) g.sessionLogs=[];
+  const wk=v('sl-week');
+  const attendees=[...document.querySelectorAll('#sl-members input[type=checkbox]:checked')].map(cb=>cb.value);
+  const rec={id:uid(),date,end:v('sl-end'),week:wk?parseInt(wk):null,attendees,attendance:attendees.length,actual:sessionLogExercises.join('\n'),note:v('sl-note')};
+  if(editSessionLogIdx!==null){
+    rec.id=g.sessionLogs[editSessionLogIdx].id;
+    g.sessionLogs[editSessionLogIdx]=rec;
+  } else {
+    g.sessionLogs.push(rec);
+  }
+  g.sessionLogs.sort((a,b)=>a.date.localeCompare(b.date));
+  save(); hide('m-session-log'); render();
+});
+
+// ── 일정 달력 ─────────────────────────────────────────────────
+let curSchedY = new Date().getFullYear(), curSchedM = new Date().getMonth();
+let editEventId = null, evColor = 'blue';
+
+const EV_COLORS = {
+  blue:   {bg:'#dbeafe',text:'#1e40af',dot:'#2563eb',label:'기본'},
+  green:  {bg:'#d1fae5',text:'#065f46',dot:'#10b981',label:'운동'},
+  red:    {bg:'#fee2e2',text:'#991b1b',dot:'#ef4444',label:'중요'},
+  yellow: {bg:'#fef3c7',text:'#92400e',dot:'#f59e0b',label:'알림'},
+  purple: {bg:'#ede9fe',text:'#5b21b6',dot:'#7c3aed',label:'그룹'},
+  orange: {bg:'#ffedd5',text:'#9a3412',dot:'#f97316',label:'주황'},
+  pink:   {bg:'#fce7f3',text:'#9d174d',dot:'#ec4899',label:'분홍'},
+  teal:   {bg:'#ccfbf1',text:'#134e4a',dot:'#14b8a6',label:'청록'},
+  indigo: {bg:'#e0e7ff',text:'#3730a3',dot:'#6366f1',label:'남색'},
+  gray:   {bg:'#f3f4f6',text:'#374151',dot:'#6b7280',label:'회색'},
+};
+
+function getColorLabel(key){
+  return (DB.colorLabels && DB.colorLabels[key]) || EV_COLORS[key].label;
+}
+
+function setColorLabel(key, value){
+  if(!DB.colorLabels) DB.colorLabels = {};
+  const trimmed = value.trim();
+  if(trimmed) DB.colorLabels[key] = trimmed;
+  else delete DB.colorLabels[key];
+  save();
+  renderEvColors();
+}
+
+function schedPrev(){ curSchedM--; if(curSchedM<0){curSchedM=11;curSchedY--;} render(); }
+function schedNext(){ curSchedM++; if(curSchedM>11){curSchedM=0;curSchedY++;} render(); }
+
+function openEvent(date){
+  editEventId=null; evColor='blue';
+  document.getElementById('m-event-title').textContent='일정 추가';
+  sv('ev-date',date||''); sv('ev-time',''); sv('ev-title',''); sv('ev-memo','');
+  renderEvColors(); show('m-event');
+}
+
+function openEditEvent(id){
+  const ev=(DB.events||[]).find(e=>e.id===id); if(!ev) return;
+  editEventId=id; evColor=ev.color||'blue';
+  document.getElementById('m-event-title').textContent='일정 수정';
+  sv('ev-date',ev.date||''); sv('ev-time',ev.time||''); sv('ev-title',ev.title||''); sv('ev-memo',ev.memo||'');
+  renderEvColors(); show('m-event');
+}
+
+function renderEvColors(){
+  const area=document.getElementById('ev-colors'); if(!area) return;
+  area.innerHTML=Object.entries(EV_COLORS).map(([k,c])=>
+    '<button onclick="evColor=\''+k+'\';renderEvColors()" style="padding:4px 14px;border-radius:20px;border:2px solid '+(evColor===k?c.dot:'#e5e7eb')+';background:'+c.bg+';color:'+c.text+';font-size:12px;font-weight:'+(evColor===k?'700':'400')+';cursor:pointer;font-family:inherit">'+getColorLabel(k)+'</button>'
+  ).join('');
+}
+
+function delEvent(id){
+  if(!confirm('삭제하시겠습니까?')) return;
+  DB.events=(DB.events||[]).filter(e=>e.id!==id);
+  save(); render();
+}
+
+document.getElementById('btn-save-event').addEventListener('click',function(){
+  const date=(document.getElementById('ev-date').value||'').trim();
+  const title=(document.getElementById('ev-title').value||'').trim();
+  if(!date){alert('날짜를 입력해주세요.');return;}
+  if(!title){alert('제목을 입력해주세요.');return;}
+  if(!DB.events) DB.events=[];
+  const rec={
+    id:editEventId||uid(),
+    date,time:document.getElementById('ev-time').value||'',
+    title,memo:document.getElementById('ev-memo').value.trim(),
+    color:evColor
+  };
+  if(editEventId){
+    const idx=DB.events.findIndex(e=>e.id===editEventId);
+    if(idx>=0) DB.events[idx]=rec; else DB.events.push(rec);
+  } else {
+    DB.events.push(rec);
+  }
+  DB.events.sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||''));
+  save(); hide('m-event'); render();
+});
+
+function pgSchedule(){
+  const today=new Date(), y=curSchedY, m=curSchedM;
+  const fd=new Date(y,m,1).getDay(), dim=new Date(y,m+1,0).getDate();
+  const mn=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const isThisMonth=(y===today.getFullYear()&&m===today.getMonth());
+
+  // 세션 날짜 맵
+  const sessMap={};
+  DB.clients.flatMap(c=>(c.sessions||[]).map(s=>({...s,cn:c.name}))).forEach(s=>{
+    if(!sessMap[s.date]) sessMap[s.date]=[];
+    sessMap[s.date].push(s);
+  });
+  // 이벤트 날짜 맵
+  const evMap={};
+  (DB.events||[]).forEach(ev=>{
+    if(!evMap[ev.date]) evMap[ev.date]=[];
+    evMap[ev.date].push(ev);
+  });
+  // 이번 달 이벤트 목록
+  const ym=y+'-'+String(m+1).padStart(2,'0');
+  const monthEvs=(DB.events||[]).filter(e=>e.date.startsWith(ym))
+    .sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||''));
+
+  let html='<div class="card">';
+
+  // 헤더 — 월 이동
+  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+    +'<button class="btn btn-gray btn-sm" onclick="schedPrev()">&#x2039; 이전</button>'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<span style="font-size:16px;font-weight:700">'+y+'년 '+mn[m]+'</span>'
+    +(!isThisMonth?'<button class="btn btn-gray btn-sm" onclick="curSchedY=new Date().getFullYear();curSchedM=new Date().getMonth();render()">오늘</button>':'')
+    +'</div>'
+    +'<button class="btn btn-gray btn-sm" onclick="schedNext()">다음 &#x203A;</button>'
+    +'</div>';
+
+  // 달력 그리드
+  html+='<div class="cal-grid">'
+    +['일','월','화','수','목','금','토'].map(d=>'<div class="cal-day-name">'+d+'</div>').join('');
+  for(let i=0;i<fd;i++) html+='<div></div>';
+  for(let d=1;d<=dim;d++){
+    const ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const isT=(isThisMonth&&d===today.getDate());
+    const ses=sessMap[ds]||[], evs=evMap[ds]||[];
+    html+='<div class="cal-cell'+(isT?' today':'')+'" onclick="openEvent(\''+ds+'\')" style="cursor:pointer;min-height:62px">'
+      +'<div class="cal-num" style="color:'+(isT?'#2563eb':'inherit')+';font-weight:'+(isT?700:400)+'">'+d+'</div>'
+      +ses.slice(0,2).map(s=>'<div class="cal-dot" style="font-size:10px;background:#dbeafe;color:#1e40af;border-radius:3px;padding:0 3px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.cn+'</div>').join('')
+      +(ses.length>2?'<div style="font-size:9px;color:#6b7280;padding:0 2px">+'+(ses.length-2)+'</div>':'')
+      +evs.map(ev=>{
+        const c=EV_COLORS[ev.color||'blue'];
+        return '<div onclick="event.stopPropagation();openEditEvent(\''+ev.id+'\')" style="font-size:10px;background:'+c.bg+';color:'+c.text+';border-radius:3px;padding:0 3px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer">'+(ev.time?ev.time.slice(0,5)+' ':'')+ev.title+'</div>';
+      }).join('')
+      +'</div>';
+  }
+  html+='</div>';
+
+  // 이번 달 일정 목록
+  html+='<div style="margin-top:22px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+    +'<span style="font-size:13px;font-weight:700;color:#374151">'+mn[m]+' 일정 목록</span>'
+    +'<button class="btn btn-blue btn-sm" onclick="openEvent(\'\')">+ 일정 추가</button>'
+    +'</div>';
+
+  if(!monthEvs.length){
+    html+='<div class="empty" style="padding:18px"><div class="ei">&#x1F4C5;</div>이번 달 등록된 일정이 없습니다.<br><span style="font-size:12px;color:#9ca3af">달력 날짜를 클릭하거나 위 버튼으로 추가하세요.</span></div>';
+  } else {
+    const dayNames=['일','월','화','수','목','금','토'];
+    const todayStr=today.toISOString().slice(0,10);
+    // 날짜별 그룹화
+    const groups={};
+    monthEvs.forEach(ev=>{ if(!groups[ev.date]) groups[ev.date]=[]; groups[ev.date].push(ev); });
+    html+='<div style="display:flex;flex-direction:column;gap:0">';
+    Object.keys(groups).sort().forEach(date=>{
+      const dt=new Date(date+'T00:00:00');
+      const dayLabel=mn[dt.getMonth()]+' '+dt.getDate()+'일 ('+dayNames[dt.getDay()]+')';
+      const isPast=date<todayStr, isToday=date===todayStr;
+      html+='<div style="display:flex;align-items:center;gap:8px;margin-top:16px;margin-bottom:6px">'
+        +'<span style="font-size:12px;font-weight:700;color:'+(isToday?'#2563eb':isPast?'#9ca3af':'#374151')+'">'+dayLabel+'</span>'
+        +(isToday?'<span style="font-size:10px;font-weight:700;background:#2563eb;color:#fff;border-radius:20px;padding:1px 8px">오늘</span>':'')
+        +'<div style="flex:1;height:1px;background:#f3f4f6"></div>'
+        +'</div>';
+      html+='<div style="display:flex;flex-direction:column;gap:6px">'
+        +groups[date].map(ev=>{
+          const c=EV_COLORS[ev.color||'blue'];
+          return '<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;background:#f9fafb;border-radius:10px;border:1.5px solid '+c.dot+'22;border-left:3px solid '+c.dot+'">'
+            +'<div style="width:8px;height:8px;border-radius:50%;background:'+c.dot+';flex-shrink:0"></div>'
+            +'<div style="flex:1;min-width:0">'
+            +'<div style="font-weight:600;font-size:13px">'+ev.title+'</div>'
+            +(ev.time?'<div style="font-size:11px;color:#6b7280">&#x23F0; '+ev.time+'</div>':'')
+            +(ev.memo?'<div style="font-size:11px;color:#9ca3af;margin-top:2px">'+ev.memo+'</div>':'')
+            +'</div>'
+            +'<div style="display:flex;gap:4px;flex-shrink:0">'
+            +'<button class="btn btn-ghost btn-sm" onclick="openEditEvent(\''+ev.id+'\')">수정</button>'
+            +'<button class="btn btn-red btn-sm" onclick="delEvent(\''+ev.id+'\')">삭제</button>'
+            +'</div></div>';
+        }).join('')
+        +'</div>';
+    });
+    html+='</div>';
+  }
+  html+='</div></div>';
+
+  return html;
+}
+</script>
+<script>
+// ── 측정 기록 카테고리 테이블 ──────────────────────────────────
+function measurePaneHTML(ms){
+  const tabs=[{id:'all',lbl:'전체'},{id:'body',lbl:'체성분'},{id:'circ',lbl:'둘레 측정'},{id:'strength',lbl:'근력'},{id:'speed',lbl:'반응속도'}];
+  let html='<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'
+    +tabs.map(t=>'<button class="btn btn-sm '+(curMeasureTab===t.id?'btn-blue':'btn-gray')+'" onclick="curMeasureTab=\''+t.id+'\';render()">'+t.lbl+'</button>').join('')
+    +'</div>';
+  if(!ms.length) return html+'<div class="empty"><div class="ei">&#x1F4CF;</div>측정 기록이 없습니다.</div>';
+  const rows=[...ms].reverse();
+  const ri2idx=ri=>ms.length-1-ri;
+  const v=(val,u)=>val?'<span style="font-weight:600">'+val+'</span><span style="font-size:10px;color:#9ca3af;margin-left:1px">'+u+'</span>':'<span style="color:#d1d5db">-</span>';
+  const act=idx=>'<td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="openEditMeasure('+idx+')">수정</button><button class="btn btn-red btn-sm" onclick="delMeasure('+idx+')">삭제</button></div></td>';
+  let thead,tbody;
+  if(curMeasureTab==='body'){
+    const cl=find(curId);
+    thead='<tr><th>날짜</th><th>몸무게</th><th>체지방률</th><th>골격근량</th><th>BMI</th><th>기초대사량</th><th>체지방량</th><th>제지방량</th><th>메모</th><th></th></tr>';
+    tbody=rows.map((m,ri)=>{
+      const st=calcBodyStats(m.weight,m.fat,cl?.height,cl?.gender,cl?.birth);
+      return '<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.weight,'kg')+'</td><td>'+v(m.fat,'%')+'</td><td>'+v(m.muscle,'kg')+'</td>'
+        +(st.bmi?'<td><b>'+st.bmi+'</b> <span style="font-size:10px;color:'+st.bmiCol+'">'+st.bmiCat+'</span></td>':'<td><span style="color:#d1d5db">-</span></td>')
+        +(st.bmr?'<td><b>'+st.bmr.toLocaleString()+'</b><span style="font-size:10px;color:#9ca3af"> kcal</span></td>':'<td><span style="color:#d1d5db">-</span></td>')
+        +(st.fatMass?'<td>'+v(st.fatMass,'kg')+'</td>':'<td><span style="color:#d1d5db">-</span></td>')
+        +(st.lbm?'<td>'+v(st.lbm,'kg')+'</td>':'<td><span style="color:#d1d5db">-</span></td>')
+        +'<td style="font-size:11px;color:#9ca3af">'+(m.memo||'')+'</td>'+act(ri2idx(ri))+'</tr>';
+    }).join('');
+  } else if(curMeasureTab==='circ'){
+    thead='<tr><th>날짜</th><th>허리</th><th>가슴</th><th>허벅지</th><th>팔 둘레</th><th>메모</th><th></th></tr>';
+    tbody=rows.map((m,ri)=>'<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.waist,'cm')+'</td><td>'+v(m.chest,'cm')+'</td><td>'+v(m.thigh,'cm')+'</td><td>'+v(m.arm,'cm')+'</td><td style="font-size:11px;color:#9ca3af">'+(m.memo||'')+'</td>'+act(ri2idx(ri))+'</tr>').join('');
+  } else if(curMeasureTab==='strength'){
+    thead='<tr><th>날짜</th><th>왼손 악력</th><th>오른손 악력</th><th>무릎 굽힘</th><th>무릎 폄</th><th>메모</th><th></th></tr>';
+    tbody=rows.map((m,ri)=>'<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.grip_l,'kg')+'</td><td>'+v(m.grip_r,'kg')+'</td><td>'+v(m.knee_flex,'kg')+'</td><td>'+v(m.knee_ext,'kg')+'</td><td style="font-size:11px;color:#9ca3af">'+(m.memo||'')+'</td>'+act(ri2idx(ri))+'</tr>').join('');
+  } else if(curMeasureTab==='speed'){
+    thead='<tr><th>날짜</th><th>개수</th><th>반응시간</th><th>한발서기 왼발</th><th>한발서기 오른발</th><th>메모</th><th></th></tr>';
+    tbody=rows.map((m,ri)=>'<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.sprint,'개')+'</td><td>'+v(m.agility,'초')+'</td><td>'+v(m.balance_l,'초')+'</td><td>'+v(m.balance_r,'초')+'</td><td style="font-size:11px;color:#9ca3af">'+(m.memo||'')+'</td>'+act(ri2idx(ri))+'</tr>').join('');
+  } else {
+    thead='<tr><th>날짜</th><th>몸무게</th><th>체지방률</th><th>골격근량</th><th>허리</th><th>가슴</th><th>허벅지</th><th>팔</th><th>왼손악력</th><th>오른손악력</th><th>무릎굽힘</th><th>무릎폄</th><th>개수</th><th>반응시간</th><th>한발서기(좌)</th><th>한발서기(우)</th><th>메모</th><th></th></tr>';
+    tbody=rows.map((m,ri)=>'<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.weight,'kg')+'</td><td>'+v(m.fat,'%')+'</td><td>'+v(m.muscle,'kg')+'</td><td>'+v(m.waist,'cm')+'</td><td>'+v(m.chest,'cm')+'</td><td>'+v(m.thigh,'cm')+'</td><td>'+v(m.arm,'cm')+'</td><td>'+v(m.grip_l,'kg')+'</td><td>'+v(m.grip_r,'kg')+'</td><td>'+v(m.knee_flex,'kg')+'</td><td>'+v(m.knee_ext,'kg')+'</td><td>'+v(m.sprint,'개')+'</td><td>'+v(m.agility,'초')+'</td><td>'+v(m.balance_l,'초')+'</td><td>'+v(m.balance_r,'초')+'</td><td style="font-size:11px;color:#9ca3af">'+(m.memo||'')+'</td>'+act(ri2idx(ri))+'</tr>').join('');
+  }
+  return html+'<div style="overflow-x:auto"><table><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table></div>';
+}
+
+// ── 회원 상세 ─────────────────────────────────────────────────
+function pgDetail(){
+  const c = find(curId);
+  if(!c) return '<p>회원 없음</p>';
+  const ms = c.measures||[], ss = c.sessions||[], ds = c.diets||[];
+  const lt = ms.length ? ms[ms.length-1] : null;
+  const ft = ms.length ? ms[0] : null;
+  const bmi = (c.height&&lt?.weight) ? (lt.weight/((c.height/100)**2)).toFixed(1) : null;
+  const a = age(c.birth);
+
+  let h = '<button class="btn btn-gray btn-sm" onclick="nav(\'clients\')" style="margin-bottom:14px">&larr; 목록으로</button>';
+
+  h += '<div class="dhead">'
+    +'<div class="av-lg" style="background:'+pal(c.name)+'">'+av2(c.name)+'</div>'
+    +'<div class="dinfo" style="flex:1">'
+    +'<div style="display:flex;align-items:center;gap:10px"><h2>'+c.name+'</h2>'+badge(c.status)+'</div>'
+    +'<div class="sub">'+(c.gender||'')+(a!==null?' · 만 '+a+'세':'')+(c.job?' · '+c.job:'')+'</div>'
+    +'<div class="chips">'
+    +(c.org?'<div class="chip" style="background:#dbeafe;color:#1e40af">&#x1F3E2; <b>'+c.org+'</b></div>':'')
+    +'<div class="chip">&#x1F4DE; '+(c.phone||'-')+'</div>'
+    +'<div class="chip">&#x1F4E7; '+(c.email||'-')+'</div>'
+    +'<div class="chip">&#x1F4C5; 등록일 <b>'+(c.joindate||'-')+'</b></div>'
+    +(c.height?'<div class="chip">키 <b>'+c.height+'cm</b></div>':'')
+    +(lt?.weight?'<div class="chip">몸무게 <b>'+lt.weight+'kg</b></div>':'')
+    +(bmi?'<div class="chip">BMI <b>'+bmi+'</b></div>':'')
+    +'</div>'
+    +(c.goal?'<div style="margin-top:8px;font-size:12px;color:#6b7280">&#x1F3AF; '+c.goal+'</div>':'')
+    +(c.health?'<div style="font-size:12px;color:#d97706;margin-top:3px">&#x26A0; '+c.health+'</div>':'')
+    +'</div>'
+    +'<div style="display:flex;gap:7px;flex-shrink:0">'
+    +'<button class="btn btn-ghost btn-sm" onclick="openEdit(\''+c.id+'\')">&#x270F; 수정</button>'
+    +'<button class="btn btn-ghost btn-sm" onclick="openDiet()">+ 식단</button>'
+    +'<button class="btn btn-green btn-sm" onclick="openSession()">+ 세션</button>'
+    +'<button class="btn btn-blue btn-sm" onclick="openMeasure()">+ 측정</button>'
+    +'</div></div>';
+
+  if(c.memo) h += '<div class="info-box">&#x1F4DD; '+c.memo+'</div>';
+
+  h += '<div class="tabs">'
+    +'<button class="tab'+(curTab==='measures'?' on':'')+'" onclick="switchTab(\'measures\')">신체 측정 기록</button>'
+    +'<button class="tab'+(curTab==='sessions'?' on':'')+'" onclick="switchTab(\'sessions\')">세션 기록 ('+ss.length+')</button>'
+    +'<button class="tab'+(curTab==='progress'?' on':'')+'" onclick="switchTab(\'progress\')">변화 요약</button>'
+    +'<button class="tab'+(curTab==='diet'?' on':'')+'" onclick="switchTab(\'diet\')">식단 기록 ('+ds.length+')</button>'
+    +'</div>';
+
+  // 측정 탭
+  h += '<div id="pane-measures" class="pane'+(curTab==='measures'?' on':'')+'"><div class="card">'
+    +'<div class="card-head"><span class="card-title">신체 측정 기록</span><button class="btn btn-blue btn-sm" onclick="openMeasure()">+ 추가</button></div>'
+    +measurePaneHTML(ms)
+    +'</div></div>';
+
+  // 세션 탭
+  h += '<div id="pane-sessions" class="pane'+(curTab==='sessions'?' on':'')+'"><div class="card">'
+    +'<div class="card-head"><span class="card-title">세션 기록</span><button class="btn btn-blue btn-sm" onclick="openSession()">+ 추가</button></div>'
+    +(ss.length===0?'<div class="empty"><div class="ei">&#x1F4AA;</div>세션 기록이 없습니다.</div>'
+      :[...ss].reverse().map((s,ri)=>{
+        const idx=ss.length-1-ri;
+        const rows=(s.ex||'').split('\n').filter(Boolean);
+        return '<div class="s-card">'
+          +'<div class="s-head"><div><span style="font-weight:700">'+s.date+'</span>'
+          +' <span class="badge b-green" style="margin-left:6px">'+s.type+'</span>'
+          +' <span class="badge b-gray" style="margin-left:4px">'+s.int+'</span>'
+          +(s.dur?' <span style="font-size:11px;color:#9ca3af">&#x23F1; '+s.dur+'분</span>':'')
+          +'</div><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="openEditSession('+idx+')">수정</button><button class="btn btn-red btn-sm" onclick="delSession('+idx+')">삭제</button></div></div>'
+          +(rows.length?'<div class="s-ex">'+rows.map(r=>{const p=r.split('|');return'<div class="s-ex-row"><span style="font-weight:600">'+(p[0]||'').trim()+'</span><span style="color:#6b7280">'+(p[1]||'').trim()+'</span></div>';}).join('')+'</div>':'')
+          +(s.note?'<div class="s-note">&#x1F4DD; '+s.note+'</div>':'')
+          +'</div>';
+      }).join(''))
+    +'</div></div>';
+
+  // 변화 요약 탭
+  h += '<div id="pane-progress" class="pane'+(curTab==='progress'?' on':'')+'"><div class="card">'
+    +'<div class="card-title" style="margin-bottom:14px">변화 요약</div>';
+  if(ms.length<2){
+    h += '<div class="info-box">측정 기록이 2개 이상이면 변화를 확인할 수 있습니다.</div>';
+  } else {
+    h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">'
+      +dcard('몸무게',ft?.weight,lt?.weight,'kg',true,'weight')
+      +dcard('체지방률',ft?.fat,lt?.fat,'%',true,'fat')
+      +dcard('골격근량',ft?.muscle,lt?.muscle,'kg',false,'muscle')
+      +dcard('허리 둘레',ft?.waist,lt?.waist,'cm',true,'waist')
+      +dcard('왼손 악력',ft?.grip_l,lt?.grip_l,'kg',false,'grip_l')
+      +dcard('오른손 악력',ft?.grip_r,lt?.grip_r,'kg',false,'grip_r')
+      +dcard('무릎 굽힘',ft?.knee_flex,lt?.knee_flex,'kg',false,'knee_flex')
+      +dcard('무릎 폄',ft?.knee_ext,lt?.knee_ext,'kg',false,'knee_ext')
+      +dcard('개수',ft?.sprint,lt?.sprint,'개',false,'sprint')
+      +dcard('반응시간',ft?.agility,lt?.agility,'초',true,'agility')
+      +(()=>{ const a=ms.find(m=>m.balance_l), b=[...ms].reverse().find(m=>m.balance_l); return dcard('한발서기 왼발',a?.balance_l,b?.balance_l,'초',false,'balance_l'); })()
+      +(()=>{ const a=ms.find(m=>m.balance_r), b=[...ms].reverse().find(m=>m.balance_r); return dcard('한발서기 오른발',a?.balance_r,b?.balance_r,'초',false,'balance_r'); })()
+      +'</div><div style="margin-top:12px;font-size:12px;color:#9ca3af">항목을 클릭하면 날짜별 상세 추이를 볼 수 있습니다 · 기간: '+ft.date+' → '+lt.date+' ('+ms.length+'회 측정)</div>';
+    const _cDefs=[
+      {field:'weight',lbl:'몸무게 (kg)',unit:'kg',color:'#2563eb'},
+      {field:'fat',lbl:'체지방률 (%)',unit:'%',color:'#ef4444'},
+      {field:'muscle',lbl:'골격근량 (kg)',unit:'kg',color:'#16a34a'},
+      {field:'waist',lbl:'허리 둘레 (cm)',unit:'cm',color:'#f59e0b'},
+      {field:'grip_l',lbl:'왼손 악력 (kg)',unit:'kg',color:'#7c3aed'},
+      {field:'grip_r',lbl:'오른손 악력 (kg)',unit:'kg',color:'#0891b2'},
+      {field:'knee_flex',lbl:'무릎 굽힘 (kg)',unit:'kg',color:'#db2777'},
+      {field:'knee_ext',lbl:'무릎 폄 (kg)',unit:'kg',color:'#d97706'},
+      {field:'sprint',lbl:'개수 (개)',unit:'개',color:'#f43f5e'},
+      {field:'agility',lbl:'반응시간 (초)',unit:'초',color:'#14b8a6',decimals:3},
+      {field:'balance_l',lbl:'한발서기 왼발 (초)',unit:'초',color:'#f97316'},
+      {field:'balance_r',lbl:'한발서기 오른발 (초)',unit:'초',color:'#ec4899'},
+    ];
+    let _ch='';
+    _cDefs.forEach(({field,lbl:cl,unit:cu,color,decimals})=>{
+      const _pts=ms.filter(m=>m[field]!==''&&m[field]!==undefined&&m[field]!==null).map(m=>({date:m.date,val:m[field]}));
+      if(_pts.length>=2){
+        _ch+='<div style="margin-bottom:20px"><div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:6px">'+cl+'</div><div style="background:#f9fafb;border-radius:10px;padding:10px 8px 4px">'+makeSVGChart(_pts,cu,color,decimals)+'</div></div>';
+      } else if(_pts.length===1 && (field==='balance_l'||field==='balance_r')){
+        _ch+='<div style="margin-bottom:20px"><div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:6px">'+cl+'</div>'
+          +'<div style="background:#f9fafb;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px">'
+          +'<div style="width:12px;height:12px;border-radius:50%;background:'+color+';flex-shrink:0"></div>'
+          +'<span style="font-size:18px;font-weight:700;color:#374151">'+_pts[0].val+cu+'</span>'
+          +'<span style="font-size:12px;color:#9ca3af">'+_pts[0].date+' · 측정 1회 (추이는 2회 이상부터 표시)</span>'
+          +'</div></div>';
+      }
+    });
+    if(_ch) h+='<hr style="margin:16px 0;border:none;border-top:1px solid #f3f4f6"><div class="card-title" style="margin-bottom:14px">&#x1F4CA; 추이 그래프</div>'+_ch;
+  }
+  h += '<hr style="margin:16px 0;border:none;border-top:1px solid #f3f4f6"><div class="card-title" style="margin-bottom:10px">세션 통계</div>'+sesStats(ss);
+  h += '</div></div>';
+
+  // 식단 탭
+  const dietDefs=[{k:'am',lbl:'아침',ico:'&#x1F305;',col:'#d97706'},{k:'pm',lbl:'점심',ico:'&#x2600;&#xFE0F;',col:'#059669'},{k:'ev',lbl:'저녁',ico:'&#x1F319;',col:'#7c3aed'},{k:'sn',lbl:'간식',ico:'&#x1F36A;',col:'#b45309'}];
+  h += '<div id="pane-diet" class="pane'+(curTab==='diet'?' on':'')+'"><div class="card">'
+    +'<div class="card-head"><span class="card-title">식단 기록</span><button class="btn btn-blue btn-sm" onclick="openDiet()">+ 추가</button></div>'
+    +(ds.length===0?'<div class="empty"><div class="ei">&#x1F37D;</div>식단 기록이 없습니다.</div>'
+      :[...ds].reverse().map((d,ri)=>{
+        const idx=ds.length-1-ri;
+        const totalKcal=dietDefs.reduce((s,{k})=>s+(parseFloat((d[k]||{}).kcal)||0),0);
+        const mealRows=dietDefs.filter(({k})=>(d[k]||{}).menu||(d[k]||{}).kcal).map(({k,lbl,ico,col})=>{
+          const m=d[k]||{};
+          const macros=[];
+          if(m.kcal) macros.push(m.kcal+'kcal');
+          if(m.carb) macros.push('탄 '+m.carb+'g');
+          if(m.protein) macros.push('단 '+m.protein+'g');
+          if(m.fat) macros.push('지 '+m.fat+'g');
+          return '<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px dashed #f3f4f6;align-items:flex-start">'
+            +'<span style="font-size:12px;font-weight:700;color:'+col+';white-space:nowrap;width:44px;flex-shrink:0">'+ico+' '+lbl+'</span>'
+            +'<div style="flex:1">'
+            +(m.menu?'<div style="font-size:13px;white-space:pre-wrap">'+m.menu+'</div>':'')
+            +(macros.length?'<div style="font-size:11px;color:#6b7280;margin-top:2px">'+macros.join(' · ')+'</div>':'')
+            +'</div></div>';
+        }).join('');
+        return '<div class="s-card">'
+          +'<div class="s-head"><div style="display:flex;align-items:center;gap:10px">'
+          +'<span style="font-weight:700">'+d.date+'</span>'
+          +(totalKcal?'<span class="badge b-green">합계 '+totalKcal+'kcal</span>':'')
+          +'</div><div style="display:flex;gap:4px">'
+          +'<button class="btn btn-ghost btn-sm" onclick="openEditDiet('+idx+')">수정</button>'
+          +'<button class="btn btn-red btn-sm" onclick="delDiet('+idx+')">삭제</button></div></div>'
+          +(mealRows||'<div style="color:#9ca3af;font-size:13px;padding:4px 0">내용 없음</div>')
+          +(d.memo?'<div class="s-note">&#x1F4DD; '+d.memo+'</div>':'')
+          +'</div>';
+      }).join(''))
+    +'</div></div>';
+
+  return h;
+}
+
+function dcard(lbl,a,b,unit,lib,field){
+  if(!a||!b) return '<div class="stat" style="cursor:default"><div class="lbl">'+lbl+'</div><div style="color:#d1d5db;font-size:13px">-</div></div>';
+  const _dec=field==='agility'?3:1;
+  const d=(parseFloat(b)-parseFloat(a)).toFixed(_dec);
+  const good = lib ? parseFloat(d)<0 : parseFloat(d)>0;
+  const col = parseFloat(d)===0?'#9ca3af':good?'#16a34a':'#ef4444';
+  const arrow = parseFloat(d)>0?'▲':parseFloat(d)<0?'▼':'→';
+  return '<div class="stat" style="cursor:pointer;transition:box-shadow .15s" onmouseenter="this.style.boxShadow=\'0 0 0 2px #2563eb40\'" onmouseleave="this.style.boxShadow=\'\'" onclick="showMeasureDetail(\''+field+'\',\''+lbl+'\',\''+unit+'\','+lib+')">'
+    +'<div class="lbl">'+lbl+' <span style="font-size:10px;color:#93c5fd">▶ 상세</span></div>'
+    +'<div class="val" style="font-size:20px">'+b+unit+'</div>'
+    +'<div style="font-size:12px;color:'+col+';margin-top:4px">'+arrow+' '+(parseFloat(d)>0?'+':'')+d+unit+'</div></div>';
+}
+
+function makeSVGChart(points, unit, color, decimals){
+  color=color||'#2563eb';
+  decimals=decimals||1;
+  if(!points||points.length<2) return '<div style="text-align:center;color:#9ca3af;font-size:12px;padding:20px 0">데이터 2개 이상 필요</div>';
+  const W=480,H=160,pl=50,pr=12,pt=14,pb=34;
+  const iW=W-pl-pr,iH=H-pt-pb;
+  const vals=points.map(p=>parseFloat(p.val));
+  const minV=Math.min(...vals),maxV=Math.max(...vals);
+  const range=maxV-minV||1;
+  const gid='g'+Math.random().toString(36).slice(2,7);
+  const cx=i=>pl+i/(points.length-1)*iW;
+  const cy=v=>pt+(1-(parseFloat(v)-minV)/range)*iH;
+  const polyPts=points.map((p,i)=>cx(i).toFixed(1)+','+cy(p.val).toFixed(1)).join(' ');
+  const fillD='M'+cx(0).toFixed(1)+','+(pt+iH)+' '+points.map((p,i)=>'L'+cx(i).toFixed(1)+','+cy(p.val).toFixed(1)).join(' ')+' L'+cx(points.length-1).toFixed(1)+','+(pt+iH)+' Z';
+  let g='',xl='',dots='';
+  const ticks=4;
+  for(let i=0;i<=ticks;i++){
+    const v=minV+range*i/ticks;
+    const y=cy(v).toFixed(1);
+    g+='<line x1="'+pl+'" y1="'+y+'" x2="'+(W-pr)+'" y2="'+y+'" stroke="#eef0f4" stroke-width="1"/>';
+    g+='<text x="'+(pl-5)+'" y="'+(parseFloat(y)+4)+'" text-anchor="end" font-size="10" fill="#b0b8c4">'+v.toFixed(decimals)+'</text>';
+  }
+  const maxL=Math.min(points.length,7);
+  const step=Math.max(1,Math.ceil(points.length/maxL));
+  const shown=new Set();
+  for(let i=0;i<points.length;i+=step){ shown.add(i); }
+  shown.add(points.length-1);
+  shown.forEach(i=>{ xl+='<text x="'+cx(i).toFixed(1)+'" y="'+(pt+iH+16)+'" text-anchor="middle" font-size="10" fill="#b0b8c4">'+points[i].date.slice(5)+'</text>'; });
+  dots=points.map((p,i)=>'<circle cx="'+cx(i).toFixed(1)+'" cy="'+cy(p.val).toFixed(1)+'" r="3.5" fill="'+color+'" stroke="#fff" stroke-width="2"/>').join('');
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:160px;display:block;overflow:visible">'
+    +'<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1">'
+    +'<stop offset="0%" stop-color="'+color+'" stop-opacity="0.18"/>'
+    +'<stop offset="100%" stop-color="'+color+'" stop-opacity="0"/>'
+    +'</linearGradient></defs>'
+    +g+xl
+    +'<path d="'+fillD+'" fill="url(#'+gid+')"/>'
+    +'<polyline points="'+polyPts+'" fill="none" stroke="'+color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'
+    +dots+'</svg>';
+}
+
+function showMeasureDetail(field, lbl, unit, lowerIsBetter){
+  const c = find(curId);
+  const ms = (c.measures||[]).filter(m => m[field]!==''&&m[field]!==undefined&&m[field]!==null&&m[field]!=='');
+  document.getElementById('m-detail-title').textContent = lbl+' 변화 추이';
+  let html = '';
+  if(!ms.length){
+    html = '<div class="empty"><div class="ei">&#x1F4CA;</div>데이터가 없습니다.</div>';
+  } else {
+    const _clr={weight:'#2563eb',fat:'#ef4444',muscle:'#16a34a',waist:'#f59e0b',chest:'#06b6d4',thigh:'#8b5cf6',arm:'#ec4899',grip_l:'#7c3aed',grip_r:'#0891b2',knee_flex:'#db2777',knee_ext:'#d97706',sprint:'#f43f5e',agility:'#14b8a6',balance_l:'#f97316',balance_r:'#ec4899'}[field]||'#2563eb';
+    const dec = field==='agility' ? 3 : 1;
+    const _pts=ms.map(m=>({date:m.date,val:m[field]}));
+    html='<div style="background:#f9fafb;border-radius:10px;padding:12px 10px 4px;margin-bottom:16px">'+makeSVGChart(_pts,unit,_clr,dec)+'</div>';
+    html += '<table><thead><tr><th>날짜</th><th>'+lbl+'</th><th>이전 대비</th></tr></thead><tbody>';
+    ms.forEach((m,i)=>{
+      const val = parseFloat(m[field]);
+      let diff = '<span style="color:#d1d5db">-</span>';
+      if(i>0){
+        const prev = parseFloat(ms[i-1][field]);
+        const d = (val-prev).toFixed(dec);
+        const good = lowerIsBetter ? parseFloat(d)<0 : parseFloat(d)>0;
+        const col = parseFloat(d)===0?'#9ca3af':good?'#16a34a':'#ef4444';
+        const arrow = parseFloat(d)>0?'▲':parseFloat(d)<0?'▼':'→';
+        diff = '<span style="color:'+col+';font-weight:600">'+arrow+' '+(parseFloat(d)>0?'+':'')+d+unit+'</span>';
+      }
+      html += '<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td style="font-weight:700">'+val.toFixed(dec)+unit+'</td><td>'+diff+'</td></tr>';
+    });
+    html += '</tbody></table>';
+    if(ms.length>=2){
+      const first=parseFloat(ms[0][field]), last=parseFloat(ms[ms.length-1][field]);
+      const total=(last-first).toFixed(dec);
+      const good = lowerIsBetter ? parseFloat(total)<0 : parseFloat(total)>0;
+      const col = parseFloat(total)===0?'#9ca3af':good?'#16a34a':'#ef4444';
+      html += '<div style="margin-top:14px;padding:10px 14px;background:#f9fafb;border-radius:8px;font-size:13px">'
+        +'총 변화: <b style="color:'+col+'">'+(parseFloat(total)>0?'+':'')+total+unit+'</b>'
+        +'<span style="color:#9ca3af;font-size:11px;margin-left:8px">'+ms[0].date+' → '+ms[ms.length-1].date+' ('+ms.length+'회)</span>'
+        +'</div>';
+    }
+  }
+  document.getElementById('m-detail-body').innerHTML = html;
+  show('m-detail-chart');
+}
+
+function sesStats(ss){
+  if(!ss.length) return '<div style="color:#9ca3af;font-size:13px">세션 기록이 없습니다.</div>';
+  const tc={};ss.forEach(s=>{tc[s.type]=(tc[s.type]||0)+1;});
+  return '<div style="display:flex;flex-direction:column;gap:8px">'
+    +Object.entries(tc).sort((a,b)=>b[1]-a[1]).map(([t,n])=>
+      '<div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>'+t+'</span><span style="font-weight:700">'+n+'회</span></div>'
+      +'<div class="pbar"><div class="pfill" style="width:'+(n/ss.length*100).toFixed(0)+'%"></div></div></div>').join('')
+    +'<div style="font-size:12px;color:#9ca3af;margin-top:4px">총 '+ss.length+'회</div></div>';
+}
+
+function switchTab(tab){
+  curTab=tab;
+  const map={measures:'신체',sessions:'세션',progress:'변화',diet:'식단'};
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.textContent.includes(map[tab]||'')));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  const el=document.getElementById('pane-'+tab);
+  if(el) el.classList.add('on');
+}
+
+function delMeasure(idx){ if(!confirm('삭제?'))return; find(curId).measures.splice(idx,1); save(); render(); }
+function delSession(idx){ if(!confirm('삭제?'))return; find(curId).sessions.splice(idx,1); save(); render(); }
+function delDiet(idx){ if(!confirm('삭제?'))return; find(curId).diets.splice(idx,1); save(); curTab='diet'; render(); }
+
+// ── 시작 ──────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
