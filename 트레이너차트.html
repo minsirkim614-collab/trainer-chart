@@ -185,8 +185,17 @@ tbody tr{cursor:pointer}
 #admin-bar .ab-logout{background:none;border:none;cursor:pointer;color:#3d4580;font-size:16px;padding:4px 6px;border-radius:6px;transition:color .15s;line-height:1;flex-shrink:0}
 #admin-bar .ab-logout:hover{color:#ef4444;background:rgba(239,68,68,.1)}
 
+/* 토스트 알림 */
+#toast-container{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
+.toast{display:flex;align-items:center;gap:10px;padding:13px 20px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.18);pointer-events:auto;animation:toastIn .25s ease;white-space:nowrap}
+.toast.success{background:#fff;color:#059669;border:1.5px solid #bbf7d0}
+.toast.error{background:#fff;color:#dc2626;border:1.5px solid #fecaca}
+.toast.info{background:#fff;color:#6366f1;border:1.5px solid #c7d2fe}
+@keyframes toastIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-12px)}}
+
 /* 로그인 화면 */
-#login-overlay{position:fixed;inset:0;background:#12153a;z-index:2000;display:flex;align-items:center;justify-content:center;flex-direction:column}
+#login-overlay{position:fixed;inset:0;background:#12153a;z-index:2000;display:flex;align-items:center;flex-direction:column;overflow-y:auto}
 .login-card{background:#fff;border-radius:20px;padding:38px 42px;width:420px;max-width:92vw;box-shadow:0 32px 80px rgba(0,0,0,.5)}
 .login-sel{width:100%;padding:11px 13px;border:1.5px solid #e2e5ee;border-radius:10px;font-size:14px;font-family:inherit;outline:none;background:#fff;color:#2d3561;cursor:pointer}
 .login-sel:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
@@ -257,7 +266,8 @@ tbody tr{cursor:pointer}
   /* 대시보드 2단 그리드 → 1열 */
   .dash-grid{grid-template-columns:1fr!important}
   /* 로그인 카드 */
-  .login-card{padding:28px 22px}
+  .login-card{padding:24px 18px}
+  #login-overlay>div{padding:20px 12px}
   /* 칩 영역 */
   .chips{gap:7px}
   /* 버튼 그룹 줄바꿈 허용 */
@@ -733,24 +743,69 @@ tbody tr{cursor:pointer}
 
 <!-- 로그인 화면 -->
 <div id="login-overlay">
+  <div style="margin:auto;width:100%;display:flex;flex-direction:column;align-items:center;padding:32px 16px">
   <div style="text-align:center;margin-bottom:28px">
     <div style="font-size:44px;margin-bottom:6px">&#x1F4AA;</div>
     <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.5px">TrainerChart</div>
     <div style="font-size:13px;color:#6872b8;margin-top:4px">환자 관리 시스템</div>
   </div>
   <div class="login-card">
-    <div style="margin-bottom:16px">
-      <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">트레이너 선택</div>
-      <select id="login-trainer" class="login-sel">
-        <option value="">트레이너를 선택하세요</option>
-      </select>
+
+    <!-- 로그인 패널 -->
+    <div id="login-panel">
+      <div style="font-size:18px;font-weight:800;color:#2d3561;margin-bottom:20px">로그인</div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">아이디</div>
+        <input id="login-id" type="text" class="login-inp" placeholder="이름을 입력해주세요" onkeydown="if(event.key==='Enter')document.getElementById('login-pw').focus()">
+      </div>
+      <div style="margin-bottom:18px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">비밀번호</div>
+        <input id="login-pw" type="password" class="login-inp" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div id="login-error" style="color:#ef4444;font-size:13px;margin-bottom:12px;min-height:20px;text-align:center"></div>
+      <button class="login-btn" onclick="doLogin()">로그인</button>
+      <div style="text-align:center;margin-top:18px;font-size:13px;color:#8892b0">
+        계정이 없으신가요?
+        <button onclick="showSignUpPanel()" style="background:none;border:none;color:#6366f1;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit;padding:0;margin-left:4px">회원가입</button>
+      </div>
     </div>
-    <div style="margin-bottom:18px">
-      <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">비밀번호</div>
-      <input id="login-pw" type="password" class="login-inp" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()">
+
+    <!-- 회원가입 패널 -->
+    <div id="signup-panel" style="display:none">
+      <div style="font-size:18px;font-weight:800;color:#2d3561;margin-bottom:20px">회원가입</div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">이름 *</div>
+        <input id="su-name" type="text" class="login-inp" placeholder="실명 (예: 홍길동)" onkeydown="if(event.key==='Enter')document.getElementById('su-username').focus()">
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">아이디 *</div>
+        <input id="su-username" type="text" class="login-inp" placeholder="로그인에 사용할 아이디" onkeydown="if(event.key==='Enter')document.getElementById('su-birth').focus()">
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">생년월일</div>
+        <input id="su-birth" type="date" class="login-inp" onkeydown="if(event.key==='Enter')document.getElementById('su-phone').focus()">
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">연락처</div>
+        <input id="su-phone" type="tel" class="login-inp" placeholder="010-0000-0000" oninput="suPhoneInput(this)" onkeydown="if(event.key==='Enter')document.getElementById('su-pw').focus()">
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">비밀번호 *</div>
+        <input id="su-pw" type="password" class="login-inp" placeholder="비밀번호 설정 (4자 이상)" onkeydown="if(event.key==='Enter')document.getElementById('su-pw2').focus()">
+      </div>
+      <div style="margin-bottom:18px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">비밀번호 확인 *</div>
+        <input id="su-pw2" type="password" class="login-inp" placeholder="비밀번호 재입력" onkeydown="if(event.key==='Enter')doSignUp()">
+      </div>
+      <div id="su-error" style="color:#ef4444;font-size:13px;margin-bottom:12px;min-height:20px;text-align:center"></div>
+      <button class="login-btn" onclick="doSignUp()">가입하기</button>
+      <div style="text-align:center;margin-top:18px;font-size:13px;color:#8892b0">
+        이미 계정이 있으신가요?
+        <button onclick="showLoginPanel()" style="background:none;border:none;color:#6366f1;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit;padding:0;margin-left:4px">로그인</button>
+      </div>
     </div>
-    <div id="login-error" style="color:#ef4444;font-size:13px;margin-bottom:12px;min-height:20px;text-align:center"></div>
-    <button class="login-btn" onclick="doLogin()">로그인</button>
+
+  </div>
   </div>
 </div>
 
@@ -988,13 +1043,69 @@ function checkLogin(){
 
 function showLoginScreen(){
   const ov = document.getElementById('login-overlay');
-  const sel = document.getElementById('login-trainer');
-  if(!ov||!sel) return;
-  sel.innerHTML = '<option value="">트레이너를 선택하세요</option>'
-    +(DB.trainers||[]).filter(t=>t.active!==false).map(t=>'<option value="'+t.id+'">'+t.name+'</option>').join('');
+  if(!ov) return;
+  document.getElementById('login-id').value='';
   document.getElementById('login-error').textContent='';
   document.getElementById('login-pw').value='';
+  // 항상 로그인 패널로 초기화
+  const lp=document.getElementById('login-panel');
+  const sp=document.getElementById('signup-panel');
+  if(lp) lp.style.display='';
+  if(sp) sp.style.display='none';
   ov.style.display='flex';
+}
+
+function showSignUpPanel(){
+  document.getElementById('login-panel').style.display='none';
+  document.getElementById('signup-panel').style.display='';
+  document.getElementById('su-name').value='';
+  document.getElementById('su-username').value='';
+  document.getElementById('su-birth').value='';
+  document.getElementById('su-phone').value='';
+  document.getElementById('su-pw').value='';
+  document.getElementById('su-pw2').value='';
+  document.getElementById('su-error').textContent='';
+  document.getElementById('su-name').focus();
+}
+
+function showLoginPanel(){
+  document.getElementById('signup-panel').style.display='none';
+  document.getElementById('login-panel').style.display='';
+  document.getElementById('login-id').value='';
+  document.getElementById('login-error').textContent='';
+  document.getElementById('login-pw').value='';
+}
+
+function suPhoneInput(el){
+  let v=el.value.replace(/\D/g,'');
+  if(v.length<=3) el.value=v;
+  else if(v.length<=7) el.value=v.slice(0,3)+'-'+v.slice(3);
+  else el.value=v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11);
+}
+
+function doSignUp(){
+  const name=(document.getElementById('su-name').value||'').trim();
+  const username=(document.getElementById('su-username').value||'').trim();
+  const birth=(document.getElementById('su-birth').value||'').trim();
+  const phone=(document.getElementById('su-phone').value||'').trim();
+  const pw=document.getElementById('su-pw').value;
+  const pw2=document.getElementById('su-pw2').value;
+  const errEl=document.getElementById('su-error');
+  if(!name){ errEl.textContent='이름을 입력해주세요.'; return; }
+  if(!username){ errEl.textContent='아이디를 입력해주세요.'; return; }
+  if(!pw){ errEl.textContent='비밀번호를 입력해주세요.'; return; }
+  if(pw.length<4){ errEl.textContent='비밀번호는 4자 이상이어야 합니다.'; return; }
+  if(pw!==pw2){ errEl.textContent='비밀번호가 일치하지 않습니다.'; return; }
+  if((DB.trainers||[]).some(t=>(t.username||t.name)===username)){ errEl.textContent='이미 사용 중인 아이디입니다.'; return; }
+  if(!DB.trainers) DB.trainers=[];
+  const trainer={id:'tr-'+uid(), name, username, birth, phone, password:pw, role:'trainer', color:'#6366f1', active:true};
+  DB.trainers.push(trainer);
+  save();
+  currentTrainer=trainer;
+  sessionStorage.setItem('tc2-trainer', JSON.stringify({id:trainer.id}));
+  curPage='dashboard';
+  showApp();
+  showToast(name+'님, 가입을 환영합니다!', 'success');
 }
 
 function showApp(){
@@ -1004,15 +1115,17 @@ function showApp(){
 }
 
 function doLogin(){
-  const id = document.getElementById('login-trainer').value;
+  const name = (document.getElementById('login-id').value||'').trim();
   const pw = document.getElementById('login-pw').value;
   const errEl = document.getElementById('login-error');
-  if(!id){ errEl.textContent='트레이너를 선택해주세요.'; return; }
-  const trainer = (DB.trainers||[]).find(t=>t.id===id&&t.active!==false);
-  if(!trainer){ errEl.textContent='트레이너를 찾을 수 없습니다.'; return; }
-  if(trainer.password !== pw){ errEl.textContent='비밀번호가 올바르지 않습니다.'; return; }
+  if(!name){ errEl.textContent='아이디를 입력해주세요.'; return; }
+  if(!pw){ errEl.textContent='비밀번호를 입력해주세요.'; return; }
+  const trainer = (DB.trainers||[]).find(t=>(t.username||t.name)===name&&t.active!==false);
+  if(!trainer){ errEl.textContent='아이디 또는 비밀번호가 올바르지 않습니다.'; return; }
+  if(trainer.password !== pw){ errEl.textContent='아이디 또는 비밀번호가 올바르지 않습니다.'; return; }
   currentTrainer = trainer;
   sessionStorage.setItem('tc2-trainer', JSON.stringify({id:trainer.id}));
+  curPage='dashboard';
   showApp();
 }
 
@@ -1052,7 +1165,7 @@ function renderAdminTrainers(){
       +'<div style="flex:1;min-width:0">'
       +'<div style="font-weight:700;font-size:13px;color:#2d3561">'+t.name
         +(isMe?' <span style="font-size:10px;background:#eef2ff;color:#6366f1;border-radius:10px;padding:1px 8px;font-weight:700">나</span>':'')+'</div>'
-      +'<div style="font-size:11px;color:#8892b0">'+(t.role==='admin'?'관리자':'트레이너')+(t.active===false?' · <span style="color:#dc2626">비활성</span>':'')+'</div>'
+      +'<div style="font-size:11px;color:#8892b0">'+(t.role==='admin'?'관리자':'트레이너')+' · '+(t.username||t.name)+(t.active===false?' · <span style="color:#dc2626">비활성</span>':'')+'</div>'
       +'</div>'
       +(canEdit?'<button class="btn btn-ghost btn-sm" onclick="startEditTrainer('+i+')">수정</button>':'')
       +(canDel?' <button class="btn btn-red btn-sm" onclick="removeTrainer('+i+')">삭제</button>':'')
@@ -1072,6 +1185,9 @@ function startEditTrainer(i){
   editTrainerIdx=i;
   const t=DB.trainers[i];
   document.getElementById('tr-edit-name').value=t.name||'';
+  document.getElementById('tr-edit-username').value=t.username||t.name||'';
+  document.getElementById('tr-edit-birth').value=t.birth||'';
+  document.getElementById('tr-edit-phone').value=t.phone||'';
   document.getElementById('tr-edit-pw').value=t.password||'';
   document.getElementById('tr-edit-role').value=t.role||'trainer';
   document.getElementById('tr-edit-color').value=t.color||'#2563eb';
@@ -1083,19 +1199,25 @@ function startEditTrainer(i){
 
 function saveTrainer(){
   const name=(document.getElementById('tr-edit-name').value||'').trim();
+  const username=(document.getElementById('tr-edit-username').value||'').trim();
+  const birth=(document.getElementById('tr-edit-birth').value||'').trim();
+  const phone=(document.getElementById('tr-edit-phone').value||'').trim();
   const pw=(document.getElementById('tr-edit-pw').value||'').trim();
   const role=document.getElementById('tr-edit-role').value;
   const color=document.getElementById('tr-edit-color').value;
   const active=document.getElementById('tr-edit-active').checked;
   if(!name){alert('이름을 입력해주세요.');return;}
+  if(!username){alert('아이디를 입력해주세요.');return;}
   if(!pw){alert('비밀번호를 입력해주세요.');return;}
+  const dupIdx=(DB.trainers||[]).findIndex(t=>(t.username||t.name)===username);
+  if(dupIdx>=0&&dupIdx!==editTrainerIdx){alert('이미 사용 중인 아이디입니다.');return;}
   if(!DB.trainers) DB.trainers=[];
   if(editTrainerIdx!==null){
-    const updated={...DB.trainers[editTrainerIdx],name,password:pw,role,color,active};
+    const updated={...DB.trainers[editTrainerIdx],name,username,birth,phone,password:pw,role,color,active};
     DB.trainers[editTrainerIdx]=updated;
     if(currentTrainer&&currentTrainer.id===updated.id) currentTrainer=updated;
   } else {
-    DB.trainers.push({id:'tr-'+uid(),name,password:pw,role,color,active:true});
+    DB.trainers.push({id:'tr-'+uid(),name,username,birth,phone,password:pw,role,color,active:true});
   }
   save(); editTrainerIdx=null;
   document.getElementById('tr-edit-form').style.display='none';
@@ -1112,6 +1234,9 @@ function cancelTrainerEdit(){
 
 function clearTrainerForm(){
   document.getElementById('tr-edit-name').value='';
+  document.getElementById('tr-edit-username').value='';
+  document.getElementById('tr-edit-birth').value='';
+  document.getElementById('tr-edit-phone').value='';
   document.getElementById('tr-edit-pw').value='';
   document.getElementById('tr-edit-role').value='trainer';
   document.getElementById('tr-edit-color').value='#2563eb';
@@ -2405,7 +2530,10 @@ function pgAdmin(){
       +'<div id="tr-edit-form" style="display:none;border:1.5px solid #c7d2fe;border-radius:12px;padding:20px;background:#eef2ff">'
       +'<div id="tr-edit-title" style="font-size:14px;font-weight:700;color:#2d3561;margin-bottom:14px">트레이너 추가</div>'
       +'<div class="fgrid">'
-      +'<div class="fg"><label>이름 *</label><input id="tr-edit-name" type="text" placeholder="트레이너 이름" onkeydown="if(event.key===\'Enter\')saveTrainer()"></div>'
+      +'<div class="fg"><label>이름 *</label><input id="tr-edit-name" type="text" placeholder="실명" onkeydown="if(event.key===\'Enter\')saveTrainer()"></div>'
+      +'<div class="fg"><label>아이디 *</label><input id="tr-edit-username" type="text" placeholder="로그인 아이디" onkeydown="if(event.key===\'Enter\')saveTrainer()"></div>'
+      +'<div class="fg"><label>생년월일</label><input id="tr-edit-birth" type="date"></div>'
+      +'<div class="fg"><label>연락처</label><input id="tr-edit-phone" type="tel" placeholder="010-0000-0000" oninput="suPhoneInput(this)"></div>'
       +'<div class="fg"><label>비밀번호 *</label><input id="tr-edit-pw" type="password" placeholder="로그인 비밀번호" onkeydown="if(event.key===\'Enter\')saveTrainer()"></div>'
       +'<div class="fg"><label>역할</label><select id="tr-edit-role"><option value="trainer">트레이너</option><option value="admin">관리자</option></select></div>'
       +'<div class="fg"><label>아바타 색상</label><input id="tr-edit-color" type="color" value="#2563eb" style="height:40px;width:100%;padding:2px 4px;border:1.5px solid #e2e5ee;border-radius:8px;cursor:pointer"></div>'
@@ -3690,6 +3818,21 @@ document.getElementById('sync-status').textContent = '⏳ 동기화 중...';
   }
   setTimeout(()=>{ document.getElementById('sync-status').textContent = ''; }, 3000);
 })();
+
+function showToast(msg, type='success', duration=3000){
+  let container=document.getElementById('toast-container');
+  if(!container){ container=document.createElement('div'); container.id='toast-container'; document.body.appendChild(container); }
+  const t=document.createElement('div');
+  t.className='toast '+type;
+  const icon=type==='success'?'✓':type==='error'?'✕':'ℹ';
+  t.innerHTML='<span style="font-size:16px">'+icon+'</span><span>'+msg+'</span>';
+  container.appendChild(t);
+  setTimeout(()=>{
+    t.style.animation='toastOut .25s ease forwards';
+    setTimeout(()=>t.remove(), 250);
+  }, duration);
+}
 </script>
+<div id="toast-container"></div>
 </body>
 </html>
