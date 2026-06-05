@@ -176,12 +176,24 @@ tbody tr{cursor:pointer}
 #sidebar nav .nav-sep{border:none;border-top:1px solid #2d3361;margin:6px 14px}
 
 /* 관리자 바 */
-#admin-bar{padding:14px 16px;border-top:1px solid #2d3361;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .15s}
-#admin-bar:hover{background:#252848}
+#admin-bar{padding:14px 16px;border-top:1px solid #2d3361;display:flex;align-items:center;gap:10px;transition:background .15s}
+#admin-bar .ab-click{display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;border-radius:8px;padding:2px 0;transition:background .15s}
+#admin-bar .ab-click:hover{background:rgba(255,255,255,.05)}
 #admin-bar .ab-info{flex:1;overflow:hidden}
 #admin-bar .ab-name{font-size:13px;font-weight:700;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #admin-bar .ab-role{font-size:11px;color:#3d4580}
-#admin-bar .ab-gear{font-size:14px;color:#3d4580}
+#admin-bar .ab-logout{background:none;border:none;cursor:pointer;color:#3d4580;font-size:16px;padding:4px 6px;border-radius:6px;transition:color .15s;line-height:1;flex-shrink:0}
+#admin-bar .ab-logout:hover{color:#ef4444;background:rgba(239,68,68,.1)}
+
+/* 로그인 화면 */
+#login-overlay{position:fixed;inset:0;background:#12153a;z-index:2000;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.login-card{background:#fff;border-radius:20px;padding:38px 42px;width:420px;max-width:92vw;box-shadow:0 32px 80px rgba(0,0,0,.5)}
+.login-sel{width:100%;padding:11px 13px;border:1.5px solid #e2e5ee;border-radius:10px;font-size:14px;font-family:inherit;outline:none;background:#fff;color:#2d3561;cursor:pointer}
+.login-sel:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+.login-inp{width:100%;padding:11px 13px;border:1.5px solid #e2e5ee;border-radius:10px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box}
+.login-inp:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+.login-btn{width:100%;padding:14px;background:#6366f1;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s}
+.login-btn:hover{background:#4f52d8}
 </style>
 </head>
 <body>
@@ -208,13 +220,15 @@ tbody tr{cursor:pointer}
     <hr class="nav-sep">
     <a data-p="admin">&#x2699;&#xFE0F; 관리자 설정</a>
   </nav>
-  <div id="admin-bar" onclick="nav('admin')" style="cursor:pointer">
-    <div class="av" style="background:#2563eb" id="sb-av">관</div>
-    <div class="ab-info">
-      <div class="ab-name" id="sb-name">트레이너</div>
-      <div class="ab-role">관리자</div>
+  <div id="admin-bar">
+    <div class="ab-click" onclick="nav('admin')">
+      <div class="av" style="background:#2563eb" id="sb-av">관</div>
+      <div class="ab-info">
+        <div class="ab-name" id="sb-name">트레이너</div>
+        <div class="ab-role" id="sb-role">관리자</div>
+      </div>
     </div>
-    <span class="ab-gear">&#x2699;</span>
+    <button class="ab-logout" onclick="doLogout()" title="로그아웃">&#x23FB;</button>
   </div>
   <div class="ver">v2.0 · 로컬 저장</div>
 </div>
@@ -641,6 +655,29 @@ tbody tr{cursor:pointer}
 </div>
 </div>
 
+<!-- 로그인 화면 -->
+<div id="login-overlay">
+  <div style="text-align:center;margin-bottom:28px">
+    <div style="font-size:44px;margin-bottom:6px">&#x1F4AA;</div>
+    <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.5px">TrainerChart</div>
+    <div style="font-size:13px;color:#6872b8;margin-top:4px">환자 관리 시스템</div>
+  </div>
+  <div class="login-card">
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">트레이너 선택</div>
+      <select id="login-trainer" class="login-sel">
+        <option value="">트레이너를 선택하세요</option>
+      </select>
+    </div>
+    <div style="margin-bottom:18px">
+      <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">비밀번호</div>
+      <input id="login-pw" type="password" class="login-inp" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="login-error" style="color:#ef4444;font-size:13px;margin-bottom:12px;min-height:20px;text-align:center"></div>
+    <button class="login-btn" onclick="doLogin()">로그인</button>
+  </div>
+</div>
+
 <script>
 // ── DB ──────────────────────────────────────────────────────
 const INIT_DATA = {"clients": [{"id": "mpzn801e8ez", "name": "신복출", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "active", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 16.8, "grip_r": 15.7, "knee_flex": 11.5, "knee_ext": 36.2, "sprint": 34, "agility": 0.414, "balance_l": 56.21, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801ekq1", "name": "황진복", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "active", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 14.2, "grip_r": 14.6, "knee_flex": 8.6, "knee_ext": 20, "sprint": 31, "agility": 0.449, "balance_l": 3.51, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801ev9v", "name": "김품자", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "active", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 0, "grip_r": 15.9, "knee_flex": 7.4, "knee_ext": 24.4, "sprint": "", "agility": "", "balance_l": "", "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801exfg", "name": "함순봉", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "pause", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 15.4, "grip_r": 20.7, "knee_flex": 14.4, "knee_ext": 26.5, "sprint": 32, "agility": 0.48, "balance_l": 29.59, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801eoij", "name": "정문주", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "active", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 18.3, "grip_r": 21.3, "knee_flex": 7.8, "knee_ext": 28.2, "sprint": 29, "agility": 0.505, "balance_l": 1, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801etm7", "name": "조순이", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "active", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 15.7, "grip_r": 14.6, "knee_flex": 9.6, "knee_ext": 31.2, "sprint": 32, "agility": 0.431, "balance_l": 8.9, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801er0x", "name": "박금술", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "active", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 17.7, "grip_r": 13.3, "knee_flex": 8, "knee_ext": 19.9, "sprint": 31, "agility": 0.476, "balance_l": 4.91, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801e7d0", "name": "이옥수", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "pause", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 20.1, "grip_r": 22.1, "knee_flex": 10.6, "knee_ext": 29, "sprint": 36, "agility": 0.403, "balance_l": 27.35, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801exi1", "name": "정금주", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "active", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 20.1, "grip_r": 12.8, "knee_flex": 15.8, "knee_ext": 33.9, "sprint": 29, "agility": 0.508, "balance_l": 60, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801ec58", "name": "박원영", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "pause", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 17.1, "grip_r": 16.7, "knee_flex": 12, "knee_ext": 25, "sprint": 32, "agility": 0.454, "balance_l": 7.11, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801e56f", "name": "심경순", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "pause", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 17, "grip_r": 18.2, "knee_flex": 9.7, "knee_ext": 27.6, "sprint": 32, "agility": 0.457, "balance_l": 42.55, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801eucs", "name": "함춘례", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "pause", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 17.3, "grip_r": 18.2, "knee_flex": 9.6, "knee_ext": 33.6, "sprint": 33, "agility": 0.426, "balance_l": 23.66, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801ek5o", "name": "최태순", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "pause", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 16.7, "grip_r": 17, "knee_flex": 9.9, "knee_ext": 19.8, "sprint": 29, "agility": 0.524, "balance_l": 22.5, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801el5q", "name": "최순옥", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "active", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 14.1, "grip_r": 17.1, "knee_flex": 10.7, "knee_ext": 29.1, "sprint": 32, "agility": 0.434, "balance_l": 16.95, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}, {"id": "mpzn801ecop", "name": "최주숙", "birth": "", "gender": "여", "phone": "", "email": "", "job": "", "org": "영덕읍사무소", "joindate": "2026-02-13", "status": "active", "height": "", "iw": "", "ifat": "", "imu": "", "goal": "", "health": "", "memo": "", "measures": [{"date": "2026-02-13", "weight": "", "fat": "", "muscle": "", "waist": "", "chest": "", "thigh": "", "arm": "", "grip_l": 23.8, "grip_r": 23.7, "knee_flex": 9.7, "knee_ext": 37.1, "sprint": 33, "agility": 0.413, "balance_l": 13.45, "balance_r": "", "memo": "초기 측정"}], "sessions": [], "diets": []}], "admin": {"name": "트레이너", "center": "", "phone": "", "email": "", "memo": ""}, "orgs": ["영덕군 실버 복지관", "영덕읍사무소", "복지관", "읍사무소"], "exTypes": ["근력 트레이닝", "유산소", "스트레칭/이동성", "체형 교정", "재활", "복합", "노인 운동"], "groupSessions": [{"date": "2026-02-13", "name": "읍사무소", "type": "노인 운동", "dur": "90", "note": "", "members": ["mpzn801e8ez", "mpzn801ekq1", "mpzn801ev9v", "mpzn801exfg", "mpzn801eoij", "mpzn801etm7", "mpzn801er0x", "mpzn801e7d0", "mpzn801exi1", "mpzn801ec58", "mpzn801e56f", "mpzn801eucs", "mpzn801ek5o", "mpzn801el5q", "mpzn801ecop"], "id": "mp6blva3mir", "weeklyPlans": [{"week": 1, "focus": "OT 및 기초측정 진행", "start": "2026-02-13", "end": "2026-02-13", "exercises": "측정진행"}, {"week": 2, "focus": "코어 및 걷기운동 시작", "start": "2026-02-20", "end": "2026-02-26", "exercises": "2/4/8박자 제자리걷기 | 20분\n2/4/8박자 뒤꿈치 들기 | 10분\n원 레그 레이즈 | 3×10 / 30분\n레크레이션 | 20분"}, {"week": 3, "focus": "코어 및 낙상예방운동", "start": "2026-02-27", "end": "2026-03-05", "exercises": "기본 스트레칭 | 10분\n발목 원그리기 | 10분\n의자에 앉아 까치발 들기 | 5분\n2/4/8박자 박수 제자리걷기 | 40분", "memo": ""}, {"week": 15, "focus": "", "start": "2026-06-05", "end": "2026-06-11", "exercises": "기본 스트레칭 | 7분\n10초 한발서기 | 10×2 / 10분\n사이드 런지 | 8×10 / 7분\n프론트 런지 | 8×10 / 7분\n레크레이션 | 15분", "memo": "10초 한발서기 : 1-4세트 1-5 산수 / 5-6세트 1-7 산수 / 7-10세트 1-10 산수\n프론트 런지 : 4박자 진행 (80bpm)\n사이드 런지 : 4박자 진행 (80bpm)\n\n레크레이션 : 한발 들기 포드치기\n - 테이블에 5개의 포드를 깔고 준비한다.\n - 한 다리로 선 다음 한손만 사용하여 포드를 친다.\n - 2명 중 더 많은 포드를 친 사람이 승리한다."}], "sessionLogs": [{"id": "mp6czeif0k6", "date": "2026-02-13", "end": "2026-02-13", "week": 1, "attendees": ["mpzn801e8ez", "mpzn801ekq1", "mpzn801ev9v", "mpzn801exfg", "mpzn801eoij", "mpzn801etm7", "mpzn801er0x", "mpzn801e7d0", "mpzn801exi1", "mpzn801ec58", "mpzn801e56f", "mpzn801eucs", "mpzn801ek5o", "mpzn801el5q", "mpzn801ecop"], "attendance": 15, "actual": "", "note": "OT 및 초기 기초 측정 진행"}, {"id": "mpzor1evtir", "date": "2026-02-20", "end": "2026-02-27", "week": 2, "attendees": ["mpzn801ekq1", "mpzn801ev9v", "mpzn801eoij", "mpzn801etm7", "mpzn801er0x", "mpzn801e7d0", "mpzn801exi1", "mpzn801e56f", "mpzn801el5q", "mpzn801ecop"], "attendance": 10, "actual": "원 레그 레이즈 | 3×10 / 30분\n2/4/8박자 제자리걷기 | 30분\n2/4/8박자 뒤꿈치 들기 | 20분", "note": "초반에는 운동이 많을 필요가 없음.\n참여자들의 표정을 잘 살피고 통증이 있는지 지루해하는지 확인하는것이 중요.\n간단한 운동이라도 살짝씩만 바꿔도 지루해지지 않음."}]}], "events": [{"id": "mp6l84898ko", "date": "2026-05-08", "time": "", "title": "윤정애 어르신", "memo": "상담 진행", "color": "orange"}, {"id": "mp6l8gpcc1w", "date": "2026-05-08", "time": "", "title": "박분남 어르신", "memo": "상담 진행", "color": "orange"}, {"id": "mp6lb5191kt", "date": "2026-05-15", "time": "", "title": "최필란 어르신", "memo": "상담 진행", "color": "orange"}, {"id": "mp6mlrrm4de", "date": "2026-05-15", "time": "", "title": "이광임 어르신", "memo": "상담 진행", "color": "orange"}, {"id": "mpqk9gq23bb", "date": "2026-05-29", "time": "", "title": "이명자 어르신", "memo": "상담 진행", "color": "orange"}, {"id": "mpqk9u7av4f", "date": "2026-05-29", "time": "", "title": "박옥희 어르신", "memo": "상담 진행", "color": "orange"}, {"id": "mpqkbxrdj8r", "date": "2026-06-05", "time": "", "title": "정재은 어르신", "memo": "", "color": "orange"}, {"id": "mpqkc5ktg5r", "date": "2026-06-05", "time": "", "title": "김옥선 어르신", "memo": "", "color": "orange"}], "colorLabels": {"orange": "상담"}};
@@ -650,6 +687,7 @@ if(!DB.orgs) DB.orgs = [];
 if(!DB.exTypes) DB.exTypes = ['근력 트레이닝','유산소','스트레칭/이동성','체형 교정','재활','복합'];
 if(!DB.groupSessions) DB.groupSessions = [];
 if(!DB.events) DB.events = [];
+if(!DB.trainers) DB.trainers = [{id:'tr-default', name:(DB.admin&&DB.admin.name?DB.admin.name:'트레이너'), password:'0000', role:'admin', color:'#2563eb', active:true}];
 if(!DB.foods) DB.foods = [
   {name:'현미밥',cat:'밥류'},{name:'잡곡밥',cat:'밥류'},{name:'흰쌀밥',cat:'밥류'},{name:'오트밀',cat:'밥류'},{name:'고구마밥',cat:'밥류'},
   {name:'된장찌개',cat:'국물류'},{name:'김치찌개',cat:'국물류'},{name:'미역국',cat:'국물류'},{name:'콩나물국',cat:'국물류'},{name:'육개장',cat:'국물류'},
@@ -839,11 +877,159 @@ document.getElementById('c-birth').addEventListener('change', function(){
 });
 
 // ── 관리자 설정 ──────────────────────────────────────────────
+let currentTrainer = null;
+
 function updateAdminBar(){
+  const t = currentTrainer || (DB.trainers&&DB.trainers[0]) || {name:'트레이너', color:'#2563eb', role:'admin'};
   const a = DB.admin;
-  const n = a.name || '트레이너';
-  document.getElementById('sb-name').textContent = n + (a.center ? ' · '+a.center : '');
-  document.getElementById('sb-av').textContent = n.slice(0,1);
+  const n = t.name || '트레이너';
+  const center = a&&a.center ? ' · '+a.center : '';
+  const nameEl = document.getElementById('sb-name');
+  const roleEl = document.getElementById('sb-role');
+  const avEl = document.getElementById('sb-av');
+  if(nameEl) nameEl.textContent = n + center;
+  if(roleEl) roleEl.textContent = t.role==='admin' ? '관리자' : '트레이너';
+  if(avEl){ avEl.textContent = n.slice(0,1); avEl.style.background = t.color||'#2563eb'; }
+}
+
+// ── 로그인 ────────────────────────────────────────────────────
+function checkLogin(){
+  const saved = sessionStorage.getItem('tc2-trainer');
+  if(saved){
+    try{
+      const parsed = JSON.parse(saved);
+      const found = (DB.trainers||[]).find(x=>x.id===parsed.id&&x.active!==false);
+      if(found){ currentTrainer=found; showApp(); return; }
+    }catch(e){}
+  }
+  showLoginScreen();
+}
+
+function showLoginScreen(){
+  const ov = document.getElementById('login-overlay');
+  const sel = document.getElementById('login-trainer');
+  if(!ov||!sel) return;
+  sel.innerHTML = '<option value="">트레이너를 선택하세요</option>'
+    +(DB.trainers||[]).filter(t=>t.active!==false).map(t=>'<option value="'+t.id+'">'+t.name+'</option>').join('');
+  document.getElementById('login-error').textContent='';
+  document.getElementById('login-pw').value='';
+  ov.style.display='flex';
+}
+
+function showApp(){
+  document.getElementById('login-overlay').style.display='none';
+  updateAdminBar();
+  render();
+}
+
+function doLogin(){
+  const id = document.getElementById('login-trainer').value;
+  const pw = document.getElementById('login-pw').value;
+  const errEl = document.getElementById('login-error');
+  if(!id){ errEl.textContent='트레이너를 선택해주세요.'; return; }
+  const trainer = (DB.trainers||[]).find(t=>t.id===id&&t.active!==false);
+  if(!trainer){ errEl.textContent='트레이너를 찾을 수 없습니다.'; return; }
+  if(trainer.password !== pw){ errEl.textContent='비밀번호가 올바르지 않습니다.'; return; }
+  currentTrainer = trainer;
+  sessionStorage.setItem('tc2-trainer', JSON.stringify({id:trainer.id}));
+  showApp();
+}
+
+function doLogout(){
+  if(!confirm('로그아웃하시겠습니까?')) return;
+  currentTrainer = null;
+  sessionStorage.removeItem('tc2-trainer');
+  showLoginScreen();
+}
+
+// ── 트레이너 관리 CRUD ────────────────────────────────────────
+let editTrainerIdx = null;
+
+function renderAdminTrainers(){
+  const el = document.getElementById('admin-trainers-list');
+  if(!el) return;
+  const trainers = DB.trainers||[];
+  if(!trainers.length){ el.innerHTML='<div style="color:#9ca3af;font-size:13px">등록된 트레이너가 없습니다.</div>'; return; }
+  el.innerHTML = trainers.map((t,i)=>{
+    const isMe = currentTrainer&&currentTrainer.id===t.id;
+    const canDel = i>0 && !isMe;
+    const canEdit = currentTrainer&&currentTrainer.role==='admin';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border:1.5px solid '+(isMe?'#6366f1':'#e2e5ee')+';border-radius:10px;background:'+(isMe?'#f0f0ff':'#f9fafb')+';margin-bottom:8px">'
+      +'<div style="width:36px;height:36px;border-radius:50%;background:'+t.color+';display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">'+(t.name||'?').slice(0,1)+'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-weight:700;font-size:13px;color:#2d3561">'+t.name
+        +(isMe?' <span style="font-size:10px;background:#eef2ff;color:#6366f1;border-radius:10px;padding:1px 8px;font-weight:700">나</span>':'')+'</div>'
+      +'<div style="font-size:11px;color:#8892b0">'+(t.role==='admin'?'관리자':'트레이너')+(t.active===false?' · <span style="color:#dc2626">비활성</span>':'')+'</div>'
+      +'</div>'
+      +(canEdit?'<button class="btn btn-ghost btn-sm" onclick="startEditTrainer('+i+')">수정</button>':'')
+      +(canDel?' <button class="btn btn-red btn-sm" onclick="removeTrainer('+i+')">삭제</button>':'')
+      +'</div>';
+  }).join('');
+}
+
+function openAddTrainer(){
+  editTrainerIdx=null;
+  clearTrainerForm();
+  document.getElementById('tr-edit-form').style.display='';
+  document.getElementById('tr-edit-title').textContent='트레이너 추가';
+  document.getElementById('tr-edit-name').focus();
+}
+
+function startEditTrainer(i){
+  editTrainerIdx=i;
+  const t=DB.trainers[i];
+  document.getElementById('tr-edit-name').value=t.name||'';
+  document.getElementById('tr-edit-pw').value=t.password||'';
+  document.getElementById('tr-edit-role').value=t.role||'trainer';
+  document.getElementById('tr-edit-color').value=t.color||'#2563eb';
+  document.getElementById('tr-edit-active').checked=t.active!==false;
+  document.getElementById('tr-edit-form').style.display='';
+  document.getElementById('tr-edit-title').textContent='트레이너 수정';
+  document.getElementById('tr-edit-name').focus();
+}
+
+function saveTrainer(){
+  const name=(document.getElementById('tr-edit-name').value||'').trim();
+  const pw=(document.getElementById('tr-edit-pw').value||'').trim();
+  const role=document.getElementById('tr-edit-role').value;
+  const color=document.getElementById('tr-edit-color').value;
+  const active=document.getElementById('tr-edit-active').checked;
+  if(!name){alert('이름을 입력해주세요.');return;}
+  if(!pw){alert('비밀번호를 입력해주세요.');return;}
+  if(!DB.trainers) DB.trainers=[];
+  if(editTrainerIdx!==null){
+    const updated={...DB.trainers[editTrainerIdx],name,password:pw,role,color,active};
+    DB.trainers[editTrainerIdx]=updated;
+    if(currentTrainer&&currentTrainer.id===updated.id) currentTrainer=updated;
+  } else {
+    DB.trainers.push({id:'tr-'+uid(),name,password:pw,role,color,active:true});
+  }
+  save(); editTrainerIdx=null;
+  document.getElementById('tr-edit-form').style.display='none';
+  clearTrainerForm();
+  updateAdminBar();
+  renderAdminTrainers();
+}
+
+function cancelTrainerEdit(){
+  editTrainerIdx=null;
+  document.getElementById('tr-edit-form').style.display='none';
+  clearTrainerForm();
+}
+
+function clearTrainerForm(){
+  document.getElementById('tr-edit-name').value='';
+  document.getElementById('tr-edit-pw').value='';
+  document.getElementById('tr-edit-role').value='trainer';
+  document.getElementById('tr-edit-color').value='#2563eb';
+  const ac=document.getElementById('tr-edit-active'); if(ac) ac.checked=true;
+}
+
+function removeTrainer(i){
+  if(currentTrainer&&currentTrainer.id===DB.trainers[i].id){alert('현재 로그인 중인 계정은 삭제할 수 없습니다.');return;}
+  if(!confirm('삭제하시겠습니까?'))return;
+  DB.trainers.splice(i,1);
+  save(); renderAdminTrainers();
 }
 
 function populateSelects(){
@@ -877,6 +1063,7 @@ function renderAdminSubSidebar(){
   if(titleEl) titleEl.textContent = '관리자 설정';
   if(addBtn){
     if(curAdminSection==='profile'||curAdminSection==='colors'){ addBtn.style.display='none'; }
+    else if(curAdminSection==='trainers'){ addBtn.style.display=''; addBtn.setAttribute('onclick','openAddTrainer()'); }
     else{ addBtn.style.display=''; addBtn.setAttribute('onclick','focusAdminAddInput()'); }
   }
   const items = [
@@ -887,6 +1074,9 @@ function renderAdminSubSidebar(){
     {k:'exercises',icon:'💪', label:'운동 목록'},
     {k:'colors',   icon:'🎨', label:'색상 이름'},
   ];
+  if(!currentTrainer||currentTrainer.role==='admin'){
+    items.splice(1,0,{k:'trainers',icon:'&#x1F464;',label:'트레이너 관리'});
+  }
   list.innerHTML = items.map(it=>
     '<div class="ssb-item'+(curAdminSection===it.k?' on':'')+'" onclick="navAdminSection(\''+it.k+'\')" style="display:flex;align-items:center;gap:9px">'
     +'<span>'+it.icon+'</span>'
@@ -908,6 +1098,7 @@ function initAdminSection(){
   if(curAdminSection==='profile') initAdminPage();
   else if(curAdminSection==='foods') renderAdminFoods();
   else if(curAdminSection==='exercises') renderAdminExercises();
+  else if(curAdminSection==='trainers') renderAdminTrainers();
   else renderAdminLists();
 }
 
@@ -2111,6 +2302,27 @@ function pgAdmin(){
       +'<button class="btn btn-blue" id="btn-save-admin" onclick="saveAdmin()">저장</button>'
       +'</div></div>';
   }
+  if(curAdminSection==='trainers'){
+    return '<div class="card">'
+      +'<div class="card-head" style="margin-bottom:16px"><span class="card-title">&#x1F464; 트레이너 관리</span>'
+      +'<button class="btn btn-blue btn-sm" onclick="openAddTrainer()">+ 트레이너 추가</button></div>'
+      +'<div id="admin-trainers-list" style="margin-bottom:16px"></div>'
+      +'<div id="tr-edit-form" style="display:none;border:1.5px solid #c7d2fe;border-radius:12px;padding:20px;background:#eef2ff">'
+      +'<div id="tr-edit-title" style="font-size:14px;font-weight:700;color:#2d3561;margin-bottom:14px">트레이너 추가</div>'
+      +'<div class="fgrid">'
+      +'<div class="fg"><label>이름 *</label><input id="tr-edit-name" type="text" placeholder="트레이너 이름" onkeydown="if(event.key===\'Enter\')saveTrainer()"></div>'
+      +'<div class="fg"><label>비밀번호 *</label><input id="tr-edit-pw" type="password" placeholder="로그인 비밀번호" onkeydown="if(event.key===\'Enter\')saveTrainer()"></div>'
+      +'<div class="fg"><label>역할</label><select id="tr-edit-role"><option value="trainer">트레이너</option><option value="admin">관리자</option></select></div>'
+      +'<div class="fg"><label>아바타 색상</label><input id="tr-edit-color" type="color" value="#2563eb" style="height:40px;width:100%;padding:2px 4px;border:1.5px solid #e2e5ee;border-radius:8px;cursor:pointer"></div>'
+      +'<div class="fg"><label>활성 상태</label><div style="display:flex;align-items:center;gap:8px;padding-top:9px"><input id="tr-edit-active" type="checkbox" checked style="width:16px;height:16px;cursor:pointer;accent-color:#6366f1"><label for="tr-edit-active" style="font-size:13px;color:#2d3561;cursor:pointer;font-weight:400;user-select:none">활성</label></div></div>'
+      +'</div>'
+      +'<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">'
+      +'<button class="btn btn-gray" onclick="cancelTrainerEdit()">취소</button>'
+      +'<button class="btn btn-blue" onclick="saveTrainer()">저장</button>'
+      +'</div></div>'
+      +'<div class="info-box" style="margin-top:16px;font-size:12px">&#x26A0; 기본 비밀번호는 <b>0000</b>입니다. 첫 로그인 후 반드시 변경해주세요.</div>'
+      +'</div>';
+  }
   if(curAdminSection==='orgs'){
     return '<div class="card">'
       +'<div class="card-head" style="margin-bottom:16px"><span class="card-title">&#x1F3E2; 소속 목록</span></div>'
@@ -2347,7 +2559,7 @@ function renderSessionLogMembers(selectedIds){
   const members=(g.members||[]).map(id=>find(id)).filter(Boolean);
   if(!members.length){el.innerHTML='<span style="color:#9ca3af;font-size:12px">등록된 회원이 없습니다.</span>';return;}
   el.innerHTML=members.map(c=>{
-    const on=selectedIds===null||(selectedIds||[]).includes(c.id);
+    const on=(selectedIds||[]).includes(c.id);
     return '<label style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;cursor:pointer;border:1.5px solid '+(on?'#d97706':'#e5e7eb')+';background:'+(on?'#fef3c7':'#fff')+';font-size:12px;user-select:none;transition:all .1s" onclick="toggleSLM(this)">'
       +'<span class="av" style="background:'+pal(c.name)+';width:22px;height:22px;font-size:9px;flex-shrink:0">'+av2(c.name)+'</span>'
       +c.name
@@ -3358,7 +3570,7 @@ function delSession(idx){ if(!confirm('삭제?'))return; find(curId).sessions.sp
 function delDiet(idx){ if(!confirm('삭제?'))return; find(curId).diets.splice(idx,1); save(); curTab='diet'; render(); }
 
 // ── 시작 ──────────────────────────────────────────────────────
-render();
+checkLogin();
 // 최초 실행 시 데이터를 구글 시트에 저장 후 불러오기
 document.getElementById('sync-status').textContent = '⏳ 동기화 중...';
 (async () => {
@@ -3370,8 +3582,15 @@ document.getElementById('sync-status').textContent = '⏳ 동기화 중...';
     document.getElementById('sync-status').textContent = '✅ 데이터 업로드 완료!';
   } else {
     DB = JSON.parse(text);
+    if(!DB.trainers) DB.trainers = [{id:'tr-default', name:(DB.admin&&DB.admin.name?DB.admin.name:'트레이너'), password:'0000', role:'admin', color:'#2563eb', active:true}];
     localStorage.setItem('tc2', JSON.stringify(DB));
-    render();
+    if(currentTrainer){
+      const found=(DB.trainers||[]).find(x=>x.id===currentTrainer.id&&x.active!==false);
+      if(found){ currentTrainer=found; updateAdminBar(); render(); }
+      else { currentTrainer=null; sessionStorage.removeItem('tc2-trainer'); showLoginScreen(); }
+    } else {
+      showLoginScreen();
+    }
     document.getElementById('sync-status').textContent = '✅ 동기화 완료';
   }
   setTimeout(()=>{ document.getElementById('sync-status').textContent = ''; }, 3000);
