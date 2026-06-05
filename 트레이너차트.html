@@ -217,8 +217,8 @@ tbody tr{cursor:pointer}
     <a data-p="measure-manual">&#x1F4CF; 측정 메뉴얼</a>
     <a data-p="exercise-manual">&#x1F4D6; 운동 메뉴얼</a>
 
-    <hr class="nav-sep">
-    <a data-p="admin">&#x2699;&#xFE0F; 관리자 설정</a>
+    <hr class="nav-sep" id="nav-sep-admin">
+    <a data-p="admin" id="nav-admin">&#x2699;&#xFE0F; 관리자 설정</a>
   </nav>
   <div id="admin-bar">
     <div class="ab-click" onclick="nav('admin')">
@@ -890,6 +890,11 @@ function updateAdminBar(){
   if(nameEl) nameEl.textContent = n + center;
   if(roleEl) roleEl.textContent = t.role==='admin' ? '관리자' : '트레이너';
   if(avEl){ avEl.textContent = n.slice(0,1); avEl.style.background = t.color||'#2563eb'; }
+  const isAdmin = t.role==='admin';
+  const navAdmin = document.getElementById('nav-admin');
+  const navSep = document.getElementById('nav-sep-admin');
+  if(navAdmin) navAdmin.style.display = isAdmin ? '' : 'none';
+  if(navSep) navSep.style.display = isAdmin ? '' : 'none';
 }
 
 // ── 로그인 ────────────────────────────────────────────────────
@@ -1800,6 +1805,7 @@ let curPage = 'dashboard', curTab = 'measures', curMeasureTab = 'all';
 let curGroupId = null, curGroupTab = 'plans', curPlanFilter = null, curLogFilter = null, curPlanFilterOpen = false, curLogFilterOpen = false;
 
 function nav(p, id){
+  if(p==='admin' && currentTrainer && currentTrainer.role!=='admin') return;
   curPage = p; curId = id || null;
   if(p==='admin') curAdminSection='profile';
   document.querySelectorAll('#sidebar nav a').forEach(a => a.classList.toggle('on', a.dataset.p === p));
