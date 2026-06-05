@@ -194,6 +194,75 @@ tbody tr{cursor:pointer}
 .login-inp:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
 .login-btn{width:100%;padding:14px;background:#6366f1;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s}
 .login-btn:hover{background:#4f52d8}
+
+/* 햄버거 버튼 (데스크탑 숨김) */
+#mob-menu-btn{display:none;background:none;border:none;cursor:pointer;color:#2d3561;padding:7px;border-radius:8px;transition:background .15s;flex-shrink:0}
+#mob-menu-btn:hover{background:#f1f3f8}
+#mob-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199}
+#mob-backdrop.show{display:block}
+
+/* ── 모바일 반응형 ─────────────────────────────────────────── */
+@media (max-width:768px){
+  /* 사이드바: 드로어 */
+  #sidebar{transform:translateX(-100%);transition:transform .25s ease;z-index:200;width:260px}
+  #sidebar.mob-open{transform:translateX(0)}
+  /* 서브 사이드바: 숨김 */
+  #sub-sidebar{display:none!important}
+  #ssb-toggle-btn{display:none!important}
+  /* 메인: 전체폭 */
+  #main{margin-left:0!important}
+  /* 탑바 */
+  #topbar{padding:0 12px;height:54px}
+  #topbar h1{font-size:15px}
+  #mob-menu-btn{display:flex;align-items:center;justify-content:center}
+  #sync-status{display:none}
+  #sync-btn{display:none}
+  #btn-add{font-size:12px;padding:7px 11px}
+  /* 페이지 여백 */
+  #page{padding:12px}
+  /* 통계 카드 2열 */
+  .stats{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+  .stat{padding:13px 14px}
+  .stat .val{font-size:22px}
+  .stat .ico{font-size:20px}
+  /* 카드 */
+  .card{padding:14px;border-radius:12px}
+  /* 폼 그리드 1열 */
+  .fgrid{grid-template-columns:1fr}
+  .fg.full{grid-column:span 1}
+  .fdiv{grid-column:span 1}
+  .flbl{grid-column:span 1}
+  /* 테이블 가로 스크롤 */
+  .card{overflow-x:auto}
+  table{min-width:480px}
+  th,td{padding:9px 10px}
+  /* 모달: 바텀시트 */
+  .overlay{align-items:flex-end!important}
+  .modal{border-radius:18px 18px 0 0!important;width:100%!important;max-width:100%!important;max-height:90vh!important;margin:0}
+  .mhead{padding:16px 18px}
+  .mbody{padding:16px 18px}
+  .mfoot{padding:12px 18px}
+  /* 회원 상세 헤더 */
+  .dhead{flex-direction:column;gap:12px}
+  .dhead .dinfo{width:100%}
+  /* 탭 가로 스크롤 */
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+  .tab{white-space:nowrap;padding:9px 11px;font-size:12px}
+  /* 검색바 */
+  .searchbar{flex-wrap:wrap}
+  .searchbar select{width:100%}
+  /* 달력 */
+  .cal-cell{min-height:46px;padding:3px}
+  .cal-dot{font-size:9px;padding:1px 3px}
+  /* 대시보드 2단 그리드 → 1열 */
+  .dash-grid{grid-template-columns:1fr!important}
+  /* 로그인 카드 */
+  .login-card{padding:28px 22px}
+  /* 칩 영역 */
+  .chips{gap:7px}
+  /* 버튼 그룹 줄바꿈 허용 */
+  .dhead > div:last-child{flex-wrap:wrap;gap:6px}
+}
 </style>
 </head>
 <body>
@@ -221,7 +290,7 @@ tbody tr{cursor:pointer}
     <a data-p="admin" id="nav-admin">&#x2699;&#xFE0F; 관리자 설정</a>
   </nav>
   <div id="admin-bar">
-    <div class="ab-click" onclick="nav('admin')">
+    <div class="ab-click" onclick="closeMobSidebar();nav('admin')">
       <div class="av" style="background:#2563eb" id="sb-av">관</div>
       <div class="ab-info">
         <div class="ab-name" id="sb-name">트레이너</div>
@@ -242,10 +311,17 @@ tbody tr{cursor:pointer}
 </div>
 <button id="ssb-toggle-btn" onclick="toggleSsb()" title="메뉴 열기">&#x203A;</button>
 
+<div id="mob-backdrop" onclick="closeMobSidebar()"></div>
+
 <div id="main">
   <div id="topbar">
-    <h1 id="pg-title">대시보드</h1>
-    <div style="display:flex;align-items:center;gap:10px">
+    <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
+      <button id="mob-menu-btn" onclick="openMobSidebar()" aria-label="메뉴">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="5" x2="18" y2="5"/><line x1="2" y1="10" x2="18" y2="10"/><line x1="2" y1="15" x2="18" y2="15"/></svg>
+      </button>
+      <h1 id="pg-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">대시보드</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
       <span id="sync-status"></span>
       <button id="sync-btn" onclick="loadFromSheets()">🔄 새로고침</button>
       <button class="btn btn-blue" id="btn-add">+ 회원 추가</button>
@@ -945,6 +1021,18 @@ function doLogout(){
   currentTrainer = null;
   sessionStorage.removeItem('tc2-trainer');
   showLoginScreen();
+}
+
+// ── 모바일 사이드바 ────────────────────────────────────────────
+function openMobSidebar(){
+  document.getElementById('sidebar').classList.add('mob-open');
+  document.getElementById('mob-backdrop').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closeMobSidebar(){
+  document.getElementById('sidebar').classList.remove('mob-open');
+  document.getElementById('mob-backdrop').classList.remove('show');
+  document.body.style.overflow='';
 }
 
 // ── 트레이너 관리 CRUD ────────────────────────────────────────
@@ -1818,6 +1906,7 @@ function nav(p, id){
 document.querySelectorAll('#sidebar nav a').forEach(a => a.addEventListener('click', () => {
   const p = a.dataset.p;
   const hasSub = ['admin','measure-manual','exercise-manual'].includes(p);
+  closeMobSidebar();
   if(hasSub && curPage === p){
     subSidebarPinned = !subSidebarPinned;
     showSubSidebar(subSidebarPinned);
@@ -2407,7 +2496,7 @@ function pgDashboard(){
     +'<div class="stat"><div class="ico">&#x1F4CB;</div><div class="lbl">이번 달 세션</div><div class="val" style="color:#2563eb">'+moN+'</div></div>'
     +'<div class="stat"><div class="ico">&#x1F4CA;</div><div class="lbl">전체 세션</div><div class="val">'+allSes.length+'</div></div>'
     +'</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'
+    +'<div class="dash-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'
     +'<div class="card"><div class="card-title" style="margin-bottom:12px">최근 등록 회원</div>'
     +(recent5c.length===0?'<div class="empty"><div class="ei">&#x1F464;</div>등록된 회원이 없습니다.</div>'
       :'<table><thead><tr><th>이름</th><th>등록일</th><th>상태</th></tr></thead><tbody>'
@@ -3325,7 +3414,7 @@ function pgDetail(){
     +(c.goal?'<div style="margin-top:8px;font-size:12px;color:#6b7280">&#x1F3AF; '+c.goal+'</div>':'')
     +(c.health?'<div style="font-size:12px;color:#d97706;margin-top:3px">&#x26A0; '+c.health+'</div>':'')
     +'</div>'
-    +'<div style="display:flex;gap:7px;flex-shrink:0">'
+    +'<div style="display:flex;gap:7px;flex-wrap:wrap">'
     +'<button class="btn btn-ghost btn-sm" onclick="openEdit(\''+c.id+'\')">&#x270F; 수정</button>'
     +'<button class="btn btn-ghost btn-sm" onclick="openDiet()">+ 식단</button>'
     +'<button class="btn btn-green btn-sm" onclick="openSession()">+ 세션</button>'
