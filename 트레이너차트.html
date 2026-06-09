@@ -194,6 +194,13 @@ tbody tr{cursor:pointer}
 @keyframes toastIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes toastOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-12px)}}
 
+/* 게시판 */
+.board-post{background:#fff;border-radius:14px;border:1px solid #e2e5ee;margin-bottom:14px;overflow:hidden}
+.board-post-head{padding:16px 20px 12px;display:flex;align-items:flex-start;gap:12px}
+.board-cmt{background:#f8f9fc;border-radius:9px;padding:10px 14px;margin-bottom:6px;display:flex;gap:10px;align-items:flex-start}
+.board-write-inp{width:100%;padding:9px 12px;border:1.5px solid #e2e5ee;border-radius:8px;font-size:13px;font-family:inherit;outline:none;color:#2d3561;box-sizing:border-box}
+.board-write-inp:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.08)}
+
 /* 로그인 화면 */
 #login-overlay{position:fixed;inset:0;background:#12153a;z-index:2000;display:flex;align-items:center;flex-direction:column;overflow-y:auto}
 .login-card{background:#fff;border-radius:20px;padding:38px 42px;width:420px;max-width:92vw;box-shadow:0 32px 80px rgba(0,0,0,.5)}
@@ -290,6 +297,10 @@ tbody tr{cursor:pointer}
     <hr class="nav-sep">
     <div class="nav-cat">일정</div>
     <a data-p="schedule">&#x1F4C5; 일정 관리</a>
+
+    <hr class="nav-sep">
+    <div class="nav-cat">커뮤니티</div>
+    <a data-p="board">&#x1F4CB; 게시판</a>
 
     <hr class="nav-sep">
     <div class="nav-cat">메뉴얼</div>
@@ -818,6 +829,7 @@ if(!DB.orgs) DB.orgs = [];
 if(!DB.exTypes) DB.exTypes = ['근력 트레이닝','유산소','스트레칭/이동성','체형 교정','재활','복합'];
 if(!DB.groupSessions) DB.groupSessions = [];
 if(!DB.events) DB.events = [];
+if(!DB.posts) DB.posts = [];
 if(!DB.trainers) DB.trainers = [{id:'tr-default', name:(DB.admin&&DB.admin.name?DB.admin.name:'트레이너'), password:'0000', role:'admin', color:'#2563eb', active:true}];
 if(!DB.foods) DB.foods = [
   {name:'현미밥',cat:'밥류'},{name:'잡곡밥',cat:'밥류'},{name:'흰쌀밥',cat:'밥류'},{name:'오트밀',cat:'밥류'},{name:'고구마밥',cat:'밥류'},
@@ -2022,7 +2034,7 @@ function nav(p, id){
   curPage = p; curId = id || null;
   if(p==='admin') curAdminSection='profile';
   document.querySelectorAll('#sidebar nav a').forEach(a => a.classList.toggle('on', a.dataset.p === p));
-  const titles = {dashboard:'대시보드', clients:'회원 목록', sessions:'개인운동', groups:'단체운동', 'group-detail':'단체운동 상세', schedule:'일정 관리', detail:'회원 상세', admin:'관리자 설정', 'measure-manual':'측정 메뉴얼', 'exercise-manual':'운동 메뉴얼'};
+  const titles = {dashboard:'대시보드', clients:'회원 목록', sessions:'개인운동', groups:'단체운동', 'group-detail':'단체운동 상세', schedule:'일정 관리', board:'트레이너 게시판', detail:'회원 상세', admin:'관리자 설정', 'measure-manual':'측정 메뉴얼', 'exercise-manual':'운동 메뉴얼'};
   document.getElementById('pg-title').textContent = titles[p] || '';
   document.querySelectorAll('#sidebar nav a').forEach(a => a.classList.toggle('on', a.dataset.p===p || (p==='group-detail' && a.dataset.p==='groups')));
   render();
@@ -2058,6 +2070,7 @@ function render(){
   else if(curPage==='groups'){ el.innerHTML=pgGroupSessions(); btn.textContent='+ 단체운동 추가'; btn.style.display=''; }
   else if(curPage==='group-detail'){ el.innerHTML=pgGroupDetail(); btn.style.display='none'; }
   else if(curPage==='schedule'){ el.innerHTML=pgSchedule(); btn.style.display='none'; }
+  else if(curPage==='board'){ el.innerHTML=pgBoard(); btn.style.display='none'; }
   else if(curPage==='detail'){ el.innerHTML=pgDetail(); btn.style.display='none'; }
   else if(curPage==='admin'){ showSubSidebar(subSidebarPinned); renderAdminSubSidebar(); el.innerHTML=pgAdmin(); btn.style.display='none'; initAdminSection(); }
   else if(curPage==='measure-manual'){ showSubSidebar(subSidebarPinned); renderSubSidebar('measure'); el.innerHTML=pgMeasureDetail(); btn.style.display='none'; }
@@ -3983,6 +3996,134 @@ document.getElementById('sync-status').textContent = '⏳ 동기화 중...';
   }
   setTimeout(()=>{ document.getElementById('sync-status').textContent = ''; }, 3000);
 })();
+
+// ── 게시판 ───────────────────────────────────────────────────
+function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+let openCommentIds=[];
+
+function pgBoard(){
+  let h='<div style="max-width:760px;margin:0 auto">';
+
+  // 글쓰기 카드
+  h+='<div class="card" style="margin-bottom:20px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0">';
+  h+='<span style="font-size:15px;font-weight:700;color:#2d3561">새 글 작성</span>';
+  h+='<button class="btn btn-blue btn-sm" onclick="(function(){var f=document.getElementById(\'bwf\');f.style.display=f.style.display===\'none\'?\'block\':\'none\'})()">+ 글쓰기</button>';
+  h+='</div>';
+  h+='<div id="bwf" style="display:none;margin-top:14px">';
+  h+='<input id="bp-title" type="text" class="board-write-inp" placeholder="제목" style="margin-bottom:8px">';
+  h+='<textarea id="bp-content" class="board-write-inp" placeholder="내용을 입력하세요..." style="resize:vertical;min-height:80px;display:block"></textarea>';
+  h+='<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">';
+  h+='<button class="btn btn-gray btn-sm" onclick="document.getElementById(\'bwf\').style.display=\'none\'">취소</button>';
+  h+='<button class="btn btn-blue btn-sm" onclick="saveBoardPost()">등록</button>';
+  h+='</div></div></div>';
+
+  // 게시글 목록
+  const posts=[...(DB.posts||[])].sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  if(!posts.length){
+    h+='<div style="text-align:center;padding:60px 0;color:#9ca3af;font-size:14px">아직 작성된 글이 없습니다.<br><span style="font-size:12px">첫 번째 글을 남겨보세요!</span></div>';
+  }
+  posts.forEach(post=>{
+    const tr=(DB.trainers||[]).find(t=>t.id===post.trainerId)||{name:'?',color:'#9ca3af'};
+    const isMe=currentTrainer&&currentTrainer.id===post.trainerId;
+    const isAdmin=currentTrainer&&currentTrainer.role==='admin';
+    const canDel=isMe||isAdmin;
+    const dt=(post.createdAt||'').slice(0,10);
+    const cmtCount=(post.comments||[]).length;
+    const isOpen=openCommentIds.includes(post.id);
+    h+='<div class="board-post">';
+    // 글 헤더
+    h+='<div class="board-post-head">';
+    h+='<div class="av" style="background:'+tr.color+';flex-shrink:0">'+escHtml((tr.name||'?')[0])+'</div>';
+    h+='<div style="flex:1;min-width:0">';
+    h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">';
+    h+='<span style="font-weight:700;font-size:13px;color:#2d3561">'+escHtml(tr.name)+'</span>';
+    h+='<span style="font-size:11px;color:#9ca3af">'+dt+'</span>';
+    if(canDel) h+='<button class="btn btn-red btn-sm" style="margin-left:auto;padding:3px 9px;font-size:11px" onclick="deleteBoardPost(\''+post.id+'\')">삭제</button>';
+    h+='</div>';
+    h+='<div style="font-size:15px;font-weight:700;color:#1e2140;margin-bottom:6px;word-break:break-all">'+escHtml(post.title)+'</div>';
+    h+='<div style="font-size:13px;color:#4a5268;line-height:1.65;word-break:break-all">'+escHtml(post.content)+'</div>';
+    h+='</div></div>';
+    // 댓글 섹션
+    h+='<div style="border-top:1px solid #f1f3f8;padding:10px 20px">';
+    h+='<button onclick="toggleBoardComments(\''+post.id+'\')" style="background:none;border:none;color:#6366f1;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;padding:0;display:flex;align-items:center;gap:5px">'
+      +'<span>💬 댓글 '+cmtCount+'개</span><span style="font-size:10px">'+(isOpen?'▲':'▼')+'</span></button>';
+    if(isOpen){
+      h+='<div style="margin-top:10px">';
+      if(cmtCount===0) h+='<div style="font-size:12px;color:#9ca3af;margin-bottom:8px">첫 댓글을 남겨보세요.</div>';
+      (post.comments||[]).forEach(c=>{
+        const ctr=(DB.trainers||[]).find(t=>t.id===c.trainerId)||{name:'?',color:'#9ca3af'};
+        const cIsMe=currentTrainer&&currentTrainer.id===c.trainerId;
+        const cCanDel=cIsMe||isAdmin;
+        h+='<div class="board-cmt">';
+        h+='<div class="av" style="background:'+ctr.color+';width:26px;height:26px;font-size:11px;flex-shrink:0">'+escHtml((ctr.name||'?')[0])+'</div>';
+        h+='<div style="flex:1;min-width:0">';
+        h+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">';
+        h+='<span style="font-size:12px;font-weight:700;color:#2d3561">'+escHtml(ctr.name)+'</span>';
+        h+='<span style="font-size:11px;color:#9ca3af">'+((c.createdAt||'').slice(0,10))+'</span>';
+        if(cCanDel) h+='<button class="btn btn-red btn-sm" style="margin-left:auto;padding:2px 7px;font-size:11px" onclick="deleteBoardComment(\''+post.id+'\',\''+c.id+'\')">삭제</button>';
+        h+='</div>';
+        h+='<div style="font-size:13px;color:#374151;word-break:break-all">'+escHtml(c.content)+'</div>';
+        h+='</div></div>';
+      });
+      // 댓글 입력
+      h+='<div style="display:flex;gap:8px;margin-top:10px;align-items:flex-end">';
+      h+='<textarea id="bc-ta-'+post.id+'" class="board-write-inp" placeholder="댓글 입력..." style="flex:1;resize:none;min-height:36px" rows="1" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();saveBoardComment(\''+post.id+'\')}"></textarea>';
+      h+='<button class="btn btn-blue btn-sm" onclick="saveBoardComment(\''+post.id+'\')">등록</button>';
+      h+='</div></div>';
+    }
+    h+='</div></div>';
+  });
+  h+='</div>';
+  return h;
+}
+
+function saveBoardPost(){
+  const title=(document.getElementById('bp-title').value||'').trim();
+  const content=(document.getElementById('bp-content').value||'').trim();
+  if(!title){showToast('제목을 입력해주세요.','error',2000);return;}
+  if(!content){showToast('내용을 입력해주세요.','error',2000);return;}
+  if(!DB.posts) DB.posts=[];
+  DB.posts.push({id:'bp-'+uid(),trainerId:currentTrainer.id,title,content,createdAt:new Date().toISOString(),comments:[]});
+  save(); render();
+  showToast('글이 등록되었습니다.','success',2000);
+}
+
+function deleteBoardPost(id){
+  if(!confirm('게시글을 삭제하시겠습니까?')) return;
+  DB.posts=(DB.posts||[]).filter(p=>p.id!==id);
+  openCommentIds=openCommentIds.filter(x=>x!==id);
+  save(); render();
+  showToast('삭제되었습니다.','success',2000);
+}
+
+function toggleBoardComments(postId){
+  const idx=openCommentIds.indexOf(postId);
+  if(idx>=0) openCommentIds.splice(idx,1);
+  else openCommentIds.push(postId);
+  render();
+}
+
+function saveBoardComment(postId){
+  const ta=document.getElementById('bc-ta-'+postId);
+  if(!ta) return;
+  const content=(ta.value||'').trim();
+  if(!content){showToast('댓글 내용을 입력해주세요.','error',2000);return;}
+  const post=(DB.posts||[]).find(p=>p.id===postId);
+  if(!post) return;
+  if(!post.comments) post.comments=[];
+  post.comments.push({id:'bc-'+uid(),trainerId:currentTrainer.id,content,createdAt:new Date().toISOString()});
+  save(); render();
+  showToast('댓글이 등록되었습니다.','success',2000);
+}
+
+function deleteBoardComment(postId,commentId){
+  const post=(DB.posts||[]).find(p=>p.id===postId);
+  if(!post) return;
+  post.comments=(post.comments||[]).filter(c=>c.id!==commentId);
+  save(); render();
+  showToast('댓글이 삭제되었습니다.','success',2000);
+}
 
 function showToast(msg, type='success', duration=3000){
   let container=document.getElementById('toast-container');
