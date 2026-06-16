@@ -776,8 +776,11 @@ tbody tr{cursor:pointer}
       <div id="login-error" style="color:#ef4444;font-size:13px;margin-bottom:12px;min-height:20px;text-align:center"></div>
       <button class="login-btn" onclick="doLogin()">로그인</button>
       <div style="text-align:center;margin-top:18px;font-size:13px;color:#8892b0">
-        계정이 없으신가요?
-        <button onclick="showSignUpPanel()" style="background:none;border:none;color:#6366f1;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit;padding:0;margin-left:4px">회원가입</button>
+        <button onclick="showFindIdPanel()" style="background:none;border:none;color:#6366f1;font-weight:600;cursor:pointer;font-size:13px;font-family:inherit;padding:0">아이디 찾기</button>
+        <span style="margin:0 8px;color:#c9d0e0">·</span>
+        <button onclick="showChPwPanel()" style="background:none;border:none;color:#6366f1;font-weight:600;cursor:pointer;font-size:13px;font-family:inherit;padding:0">비밀번호 변경</button>
+        <span style="margin:0 8px;color:#c9d0e0">·</span>
+        <button onclick="showSignUpPanel()" style="background:none;border:none;color:#6366f1;font-weight:600;cursor:pointer;font-size:13px;font-family:inherit;padding:0">회원가입</button>
       </div>
     </div>
 
@@ -813,6 +816,52 @@ tbody tr{cursor:pointer}
       <div style="text-align:center;margin-top:18px;font-size:13px;color:#8892b0">
         이미 계정이 있으신가요?
         <button onclick="showLoginPanel()" style="background:none;border:none;color:#6366f1;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit;padding:0;margin-left:4px">로그인</button>
+      </div>
+    </div>
+
+    <!-- 아이디 찾기 패널 -->
+    <div id="findid-panel" style="display:none">
+      <div style="font-size:18px;font-weight:800;color:#2d3561;margin-bottom:6px">아이디 찾기</div>
+      <div style="font-size:13px;color:#8892b0;margin-bottom:20px">가입 시 입력한 이름과 연락처로 아이디를 확인할 수 있습니다.</div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">이름</div>
+        <input id="fi-name" type="text" class="login-inp" placeholder="가입 시 등록한 이름" onkeydown="if(event.key==='Enter')document.getElementById('fi-phone').focus()">
+      </div>
+      <div style="margin-bottom:18px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">연락처</div>
+        <input id="fi-phone" type="tel" class="login-inp" placeholder="010-0000-0000" oninput="suPhoneInput(this)" onkeydown="if(event.key==='Enter')doFindId()">
+      </div>
+      <div id="fi-result" style="min-height:20px;margin-bottom:12px;text-align:center;font-size:13px"></div>
+      <button class="login-btn" onclick="doFindId()">아이디 찾기</button>
+      <div style="text-align:center;margin-top:18px;font-size:13px;color:#8892b0">
+        <button onclick="showLoginPanel()" style="background:none;border:none;color:#6366f1;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit;padding:0">로그인으로 돌아가기</button>
+      </div>
+    </div>
+
+    <!-- 비밀번호 변경 패널 -->
+    <div id="chpw-panel" style="display:none">
+      <div style="font-size:18px;font-weight:800;color:#2d3561;margin-bottom:6px">비밀번호 변경</div>
+      <div style="font-size:13px;color:#8892b0;margin-bottom:20px">아이디와 이름을 입력하여 본인 확인 후 비밀번호를 변경합니다.</div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">아이디</div>
+        <input id="cp-id" type="text" class="login-inp" placeholder="아이디 입력" onkeydown="if(event.key==='Enter')document.getElementById('cp-name').focus()">
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">이름</div>
+        <input id="cp-name" type="text" class="login-inp" placeholder="가입 시 등록한 이름" onkeydown="if(event.key==='Enter')document.getElementById('cp-pw').focus()">
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">새 비밀번호</div>
+        <input id="cp-pw" type="password" class="login-inp" placeholder="새 비밀번호 (4자 이상)" onkeydown="if(event.key==='Enter')document.getElementById('cp-pw2').focus()">
+      </div>
+      <div style="margin-bottom:18px">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">새 비밀번호 확인</div>
+        <input id="cp-pw2" type="password" class="login-inp" placeholder="새 비밀번호 재입력" onkeydown="if(event.key==='Enter')doChPw()">
+      </div>
+      <div id="cp-error" style="color:#ef4444;font-size:13px;margin-bottom:12px;min-height:20px;text-align:center"></div>
+      <button class="login-btn" onclick="doChPw()">비밀번호 변경</button>
+      <div style="text-align:center;margin-top:18px;font-size:13px;color:#8892b0">
+        <button onclick="showLoginPanel()" style="background:none;border:none;color:#6366f1;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit;padding:0">로그인으로 돌아가기</button>
       </div>
     </div>
 
@@ -1062,8 +1111,12 @@ function showLoginScreen(){
   // 항상 로그인 패널로 초기화
   const lp=document.getElementById('login-panel');
   const sp=document.getElementById('signup-panel');
+  const fp=document.getElementById('findid-panel');
+  const cp=document.getElementById('chpw-panel');
   if(lp) lp.style.display='';
   if(sp) sp.style.display='none';
+  if(fp) fp.style.display='none';
+  if(cp) cp.style.display='none';
   ov.style.display='flex';
 }
 
@@ -1082,10 +1135,74 @@ function showSignUpPanel(){
 
 function showLoginPanel(){
   document.getElementById('signup-panel').style.display='none';
+  const fp=document.getElementById('findid-panel');
+  const cp=document.getElementById('chpw-panel');
+  if(fp) fp.style.display='none';
+  if(cp) cp.style.display='none';
   document.getElementById('login-panel').style.display='';
   document.getElementById('login-id').value='';
   document.getElementById('login-error').textContent='';
   document.getElementById('login-pw').value='';
+}
+
+function showFindIdPanel(){
+  document.getElementById('login-panel').style.display='none';
+  document.getElementById('signup-panel').style.display='none';
+  const cp=document.getElementById('chpw-panel');
+  if(cp) cp.style.display='none';
+  document.getElementById('fi-name').value='';
+  document.getElementById('fi-phone').value='';
+  document.getElementById('fi-result').textContent='';
+  document.getElementById('fi-result').style.color='';
+  document.getElementById('findid-panel').style.display='';
+  document.getElementById('fi-name').focus();
+}
+
+function doFindId(){
+  const name=(document.getElementById('fi-name').value||'').trim();
+  const phone=(document.getElementById('fi-phone').value||'').trim();
+  const resEl=document.getElementById('fi-result');
+  if(!name){ resEl.style.color='#ef4444'; resEl.textContent='이름을 입력해주세요.'; return; }
+  if(!phone){ resEl.style.color='#ef4444'; resEl.textContent='연락처를 입력해주세요.'; return; }
+  const found=(DB.trainers||[]).find(t=>t.name===name&&t.phone===phone&&t.active!==false);
+  if(!found){ resEl.style.color='#ef4444'; resEl.textContent='일치하는 계정을 찾을 수 없습니다.'; return; }
+  const displayId = found.username || found.name;
+  resEl.style.color='';
+  resEl.innerHTML='<div style="background:#f0f4ff;border:1.5px solid #6366f1;border-radius:10px;padding:12px 16px;margin-bottom:4px"><div style="font-size:11px;color:#8892b0;margin-bottom:4px">회원님의 아이디</div><div style="font-size:17px;font-weight:800;color:#2d3561;letter-spacing:0.5px">'+displayId+'</div></div>';
+}
+
+function showChPwPanel(){
+  document.getElementById('login-panel').style.display='none';
+  document.getElementById('signup-panel').style.display='none';
+  const fp=document.getElementById('findid-panel');
+  if(fp) fp.style.display='none';
+  document.getElementById('cp-id').value='';
+  document.getElementById('cp-name').value='';
+  document.getElementById('cp-pw').value='';
+  document.getElementById('cp-pw2').value='';
+  document.getElementById('cp-error').textContent='';
+  document.getElementById('chpw-panel').style.display='';
+  document.getElementById('cp-id').focus();
+}
+
+function doChPw(){
+  const id=(document.getElementById('cp-id').value||'').trim();
+  const name=(document.getElementById('cp-name').value||'').trim();
+  const pw=document.getElementById('cp-pw').value;
+  const pw2=document.getElementById('cp-pw2').value;
+  const errEl=document.getElementById('cp-error');
+  if(!id){ errEl.textContent='아이디를 입력해주세요.'; return; }
+  if(!name){ errEl.textContent='이름을 입력해주세요.'; return; }
+  if(!pw){ errEl.textContent='새 비밀번호를 입력해주세요.'; return; }
+  if(pw.length<4){ errEl.textContent='비밀번호는 4자 이상이어야 합니다.'; return; }
+  if(pw!==pw2){ errEl.textContent='새 비밀번호가 일치하지 않습니다.'; return; }
+  const trainer=(DB.trainers||[]).find(t=>(t.username||t.name)===id&&t.name===name&&t.active!==false);
+  if(!trainer){ errEl.textContent='아이디 또는 이름이 일치하지 않습니다.'; return; }
+  trainer.password=pw;
+  save();
+  errEl.style.color='#22c55e';
+  errEl.textContent='비밀번호가 성공적으로 변경되었습니다.';
+  setTimeout(()=>{ errEl.style.color=''; showLoginPanel(); }, 1500);
 }
 
 function suPhoneInput(el){
