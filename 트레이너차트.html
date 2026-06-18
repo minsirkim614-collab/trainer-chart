@@ -715,8 +715,12 @@ tbody tr{cursor:pointer}
     <div class="fgrid">
       <div class="fg"><label>시작일 *</label><input id="sl-date" type="date"></div>
       <div class="fg"><label>종료일</label><input id="sl-end" type="date"></div>
-      <div class="fg"><label>주차</label><input id="sl-week" type="number" min="1" placeholder="1"></div>
+      <div class="fg"><label>주차</label><input id="sl-week" type="number" min="1" placeholder="1" onchange="renderPlanExChecks(this.value?parseInt(this.value):null)"></div>
       <div class="fg"></div>
+      <div class="fg full" id="sl-plan-check-wrap" style="display:none">
+        <label>주차 계획 운동 <span style="font-size:11px;font-weight:400;color:#9ca3af">실시한 항목에 체크</span></label>
+        <div id="sl-plan-checks" style="background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:8px;padding:10px 12px"></div>
+      </div>
       <div class="fg full">
         <label>출석 체크</label>
         <div id="sl-members" style="display:flex;flex-wrap:wrap;gap:6px;min-height:36px;padding:8px;background:#f9fafb;border-radius:8px;border:1.5px solid #e5e7eb"></div>
@@ -3532,8 +3536,82 @@ function openSessionLog(){
   sv('sl-end',''); sv('sl-week',''); sv('sl-note','');
   sessionLogExercises=[];
   EP_IDS.forEach(t=>{ const p=document.getElementById('ep-'+t); if(p) p.style.display='none'; const b=document.getElementById('ep-'+t+'-btn'); if(b) b.textContent='+ 운동 선택'; });
+  renderPlanExChecks(null);
   renderSessionLogExercises();
   renderSessionLogMembers(null);
+  show('m-session-log');
+}
+
+function renderPlanExChecks(week){
+  const wrap=document.getElementById('sl-plan-check-wrap');
+  const el=document.getElementById('sl-plan-checks');
+  if(!wrap||!el) return;
+  if(!week){ wrap.style.display='none'; el.innerHTML=''; return; }
+  const g=(DB.groupSessions||[]).find(x=>x.id===curGroupId);
+  if(!g){ wrap.style.display='none'; return; }
+  const plan=(g.weeklyPlans||[]).find(p=>p.week===parseInt(week));
+  if(!plan||!plan.exercises){ wrap.style.display='none'; el.innerHTML=''; return; }
+  const lines=plan.exercises.split('\n').filter(Boolean);
+  wrap.style.display='';
+  el.innerHTML=lines.map(line=>{
+    const pts=line.split('|');
+    const n=pts[0].trim();
+    const det=pts[1]?pts[1].trim():'';
+    const isChecked=sessionLogExercises.some(x=>x.split('|')[0].trim()===n);
+    const esc=line.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;padding:4px 0;line-height:1.5">'
+      +'<input type="checkbox" class="sl-plan-cb" value="'+esc+'" '+(isChecked?'checked':'')+' onchange="syncPlanChecksToExercises()" style="width:15px;height:15px;accent-color:#0ea5e9;cursor:pointer;flex-shrink:0">'
+      +'<span><span style="font-weight:600">'+n+'</span>'+(det?' <span style="color:#9ca3af;font-size:11px"> '+det+'</span>':'')+'</span>'
+      +'</label>';
+  }).join('');
+}
+
+function syncPlanChecksToExercises(){
+  const g=(DB.groupSessions||[]).find(x=>x.id===curGroupId);
+  const week=parseInt(document.getElementById('sl-week').value)||null;
+  let planLines=[];
+  if(g&&week){
+    const plan=(g.weeklyPlans||[]).find(p=>p.week===week);
+    if(plan&&plan.exercises) planLines=plan.exercises.split('\n').filter(Boolean);
+  }
+  const planNames=new Set(planLines.map(l=>l.split('|')[0].trim()));
+  const checked=[...document.querySelectorAll('#sl-plan-checks input[type=checkbox]:checked')].map(cb=>cb.value);
+  const extras=sessionLogExercises.filter(x=>!planNames.has(x.split('|')[0].trim()));
+  sessionLogExercises=[...checked,...extras];
+  renderSessionLogExercises();
+}
+
+function openSessionLogFromPlan(week){
+  editSessionLogIdx=null; slEditExIdx=null;
+  document.getElementById('m-session-log-title').textContent='세션 기록 추가';
+  sv('sl-date',new Date().toISOString().slice(0,10));
+  sv('sl-end',''); sv('sl-week',week||''); sv('sl-note','');
+  sessionLogExercises=[];
+  EP_IDS.forEach(t=>{ const p=document.getElementById('ep-'+t); if(p) p.style.display='none'; const b=document.getElementById('ep-'+t+'-btn'); if(b) b.textContent='+ 운동 선택'; });
+  renderPlanExChecks(week||null);
+  renderSessionLogExercises();
+  renderSessionLogMembers(null);
+  show('m-session-log');
+}
+
+function editSessionLogWithId(selectId){
+  const sel=document.getElementById(selectId);
+  if(!sel) return;
+  const logId=sel.value;
+  const g=(DB.groupSessions||[]).find(x=>x.id===curGroupId);
+  if(!g) return;
+  const idx=(g.sessionLogs||[]).findIndex(x=>x.id===logId);
+  if(idx===-1) return;
+  const l=g.sessionLogs[idx];
+  editSessionLogIdx=idx; slEditExIdx=null;
+  document.getElementById('m-session-log-title').textContent='세션 기록 수정';
+  sv('sl-date',l.date); sv('sl-end',l.end||''); sv('sl-week',l.week||'');
+  sv('sl-note',l.note||'');
+  sessionLogExercises=(l.actual||'').split('\n').filter(Boolean);
+  EP_IDS.forEach(t=>{ const p=document.getElementById('ep-'+t); if(p) p.style.display='none'; const b=document.getElementById('ep-'+t+'-btn'); if(b) b.textContent='+ 운동 선택'; });
+  renderPlanExChecks(l.week||null);
+  renderSessionLogMembers(l.attendees||[]);
+  renderSessionLogExercises();
   show('m-session-log');
 }
 
@@ -3548,6 +3626,7 @@ function openEditSessionLog(idx){
   sv('sl-note',l.note||'');
   sessionLogExercises=(l.actual||'').split('\n').filter(Boolean);
   EP_IDS.forEach(t=>{ const p=document.getElementById('ep-'+t); if(p) p.style.display='none'; const b=document.getElementById('ep-'+t+'-btn'); if(b) b.textContent='+ 운동 선택'; });
+  renderPlanExChecks(l.week||null);
   renderSessionLogMembers(l.attendees||[]);
   renderSessionLogExercises();
   show('m-session-log');
