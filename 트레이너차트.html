@@ -217,6 +217,14 @@ tbody tr{cursor:pointer}
 #mob-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199}
 #mob-backdrop.show{display:block}
 
+/* 회원목록 반응형 기본값 (데스크탑) */
+.client-table-wrap{display:block}
+.client-cards-wrap{display:none}
+.c-card{background:#fff;border:1.5px solid #e2e5ee;border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:box-shadow .15s}
+.c-card:hover{box-shadow:0 4px 16px rgba(99,102,241,.1);border-color:#c7d2fe}
+.c-card-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#6b7280;align-items:center}
+.c-card-row span{display:inline-flex;align-items:center;gap:3px}
+
 /* ── 모바일 반응형 ─────────────────────────────────────────── */
 @media (max-width:768px){
   /* 사이드바: 드로어 */
@@ -248,7 +256,10 @@ tbody tr{cursor:pointer}
   .fg.full{grid-column:span 1}
   .fdiv{grid-column:span 1}
   .flbl{grid-column:span 1}
-  /* 테이블 가로 스크롤 */
+  /* 회원목록: 모바일에서 카드형 전환 */
+  .client-table-wrap{display:none}
+  .client-cards-wrap{display:block}
+  /* 그 외 테이블 가로 스크롤 */
   .card{overflow-x:auto}
   table{min-width:480px}
   th,td{padding:9px 10px}
@@ -2825,7 +2836,7 @@ function pgClients(q){
     +'<span style="font-size:11px;font-weight:700;color:#6b7280;margin-right:2px">정렬</span>'
     +sortBtns
     +'</div>'
-    +'<div class="card" style="padding:0;overflow:hidden">'
+    +'<div class="client-table-wrap card" style="padding:0;overflow:hidden">'
     +'<table><thead><tr><th>이름</th><th>소속</th><th>성별/나이</th><th>연락처</th><th>목표</th><th>등록일</th><th>상태</th><th>관리</th></tr></thead><tbody>'
     +(list.length===0?'<tr><td colspan="8"><div class="empty"><div class="ei">&#x1F464;</div>회원이 없습니다.</div></td></tr>'
       :list.map(c=>'<tr onclick="nav(\'detail\',\''+c.id+'\')">'
@@ -2841,7 +2852,34 @@ function pgClients(q){
         +'<button class="btn btn-ghost btn-sm" onclick="openEdit(\''+c.id+'\')">수정</button> '
         +'<button class="btn btn-red btn-sm" onclick="delClient(\''+c.id+'\')">삭제</button></td>'
         +'</tr>').join(''))
-    +'</tbody></table></div>';
+    +'</tbody></table></div>'
+    +'<div class="client-cards-wrap">'
+    +(list.length===0?'<div class="empty"><div class="ei">&#x1F464;</div>회원이 없습니다.</div>'
+      :list.map(c=>{
+        const a=age(c.birth);
+        return '<div class="c-card" onclick="nav(\'detail\',\''+c.id+'\')">'
+          +'<div style="display:flex;align-items:center;gap:10px">'
+          +'<div class="av" style="background:'+pal(c.name)+';width:40px;height:40px;font-size:15px;flex-shrink:0">'+av2(c.name)+'</div>'
+          +'<div style="flex:1;min-width:0">'
+          +'<div style="font-weight:700;font-size:14px;color:#2d3561">'+c.name+'</div>'
+          +(c.job?'<div style="font-size:11px;color:#9ca3af">'+c.job+'</div>':'')
+          +'</div>'
+          +badge(c.status)
+          +'</div>'
+          +'<div class="c-card-row">'
+          +(c.org?'<span><span class="badge b-green" style="font-size:11px">'+c.org+'</span></span>':'')
+          +(c.gender||a!==null?'<span>'+( c.gender||'')+( c.gender&&a!==null?' / ':'')+( a!==null?a+'세':'')+'</span>':'')
+          +(c.phone?'<span>&#x1F4DE; '+c.phone+'</span>':'')
+          +(c.joindate?'<span>&#x1F4C5; '+c.joindate+'</span>':'')
+          +'</div>'
+          +(c.goal?'<div style="margin-top:6px;font-size:12px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">&#x1F3AF; '+c.goal+'</div>':'')
+          +'<div style="display:flex;gap:6px;justify-content:flex-end;margin-top:10px" onclick="event.stopPropagation()">'
+          +'<button class="btn btn-ghost btn-sm" onclick="openEdit(\''+c.id+'\')">수정</button>'
+          +'<button class="btn btn-red btn-sm" onclick="delClient(\''+c.id+'\')">삭제</button>'
+          +'</div>'
+          +'</div>';
+      }).join(''))
+    +'</div>';
 }
 
 function delClient(id){
