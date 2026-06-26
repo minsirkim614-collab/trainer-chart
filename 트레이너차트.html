@@ -652,6 +652,7 @@ tbody tr{cursor:pointer}
       <div class="fg"><label>수업명</label><input id="gr-name" type="text" placeholder="예: 아침 요가, GX 클래스"></div>
       <div class="fg"><label>유형</label><select id="gr-type"></select></div>
       <div class="fg"><label>시간 (분)</label><input id="gr-dur" type="number" placeholder="60"></div>
+      <div class="fg"><label>상태</label><select id="gr-status" style="padding:9px 13px;border:1.5px solid #e2e5ee;border-radius:8px;font-size:13px;outline:none;font-family:inherit;background:#fff;color:#2d3561"><option value="active">진행중</option><option value="ended">종료</option></select></div>
       <div class="fg full"><label>메모</label><textarea id="gr-note" rows="2" placeholder="오늘 수업 내용, 특이사항..."></textarea></div>
     </div>
     <div style="margin-top:16px">
@@ -932,7 +933,10 @@ if(!DB.exercises) DB.exercises = [
 // ── Google Sheets 연동 ──────────────────────────────────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzmBbbPSh-j-rnR41jgmHAhU7Oh05t5JD1pRYUDYHWfevdeWYrmfz0dOoQe7XbJ7tbpdQ/exec';
 
+let _initialSyncDone = false, _savedDuringSync = false;
+
 const save = async () => {
+  if (!_initialSyncDone) _savedDuringSync = true; // 초기 동기화 중 로컬 저장 발생 기록
   localStorage.setItem('tc2', JSON.stringify(DB)); // 로컬 백업
   try {
     await fetch(GAS_URL, {
@@ -2876,21 +2880,51 @@ function editSessionGlobal(cid, idx){ curId=cid; openEditSession(idx); }
 function delSessionGlobal(cid, idx){ curId=cid; delSession(idx); }
 
 // ── 단체운동 ──────────────────────────────────────────────────
+let curGroupStatusFilter = 'all';
+
+function toggleGroupStatus(id){
+  const g=(DB.groupSessions||[]).find(x=>x.id===id);
+  if(!g) return;
+  g.status = (g.status==='ended') ? 'active' : 'ended';
+  save(); render();
+}
+
 function pgGroupSessions(){
-  const gs=[...(DB.groupSessions||[])].sort((a,b)=>b.date.localeCompare(a.date));
-  let html='<div class="card"><div class="card-head"><span class="card-title">단체운동 기록</span><button class="btn btn-blue btn-sm" onclick="openGroup()">+ 추가</button></div>';
+  const all = DB.groupSessions||[];
+  let gs=[...all].sort((a,b)=>b.date.localeCompare(a.date));
+  if(curGroupStatusFilter==='active') gs=gs.filter(g=>(g.status||'active')==='active');
+  else if(curGroupStatusFilter==='ended') gs=gs.filter(g=>g.status==='ended');
+
+  const cntAll=all.length;
+  const cntActive=all.filter(g=>(g.status||'active')==='active').length;
+  const cntEnded=all.filter(g=>g.status==='ended').length;
+  const filterBtns=[
+    {k:'all',   l:'전체 '+cntAll},
+    {k:'active',l:'진행중 '+cntActive},
+    {k:'ended', l:'종료 '+cntEnded},
+  ].map(f=>'<button onclick="curGroupStatusFilter=\''+f.k+'\';render()" style="padding:5px 14px;font-size:12px;border-radius:20px;cursor:pointer;border:1.5px solid '+(curGroupStatusFilter===f.k?'#2563eb':'#e5e7eb')+';background:'+(curGroupStatusFilter===f.k?'#dbeafe':'#fff')+';color:'+(curGroupStatusFilter===f.k?'#1e40af':'#374151')+';font-weight:'+(curGroupStatusFilter===f.k?'700':'400')+';font-family:inherit">'+f.l+'</button>').join('');
+
+  let html='<div class="card"><div class="card-head"><span class="card-title">단체운동 기록</span><button class="btn btn-blue btn-sm" onclick="openGroup()">+ 추가</button></div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:16px">'+filterBtns+'</div>';
   if(!gs.length){
-    html+='<div class="empty"><div class="ei">&#x1F46F;</div>단체운동 기록이 없습니다.</div>';
+    const emptyMsg = curGroupStatusFilter==='active'?'진행중인 단체운동이 없습니다.':curGroupStatusFilter==='ended'?'종료된 단체운동이 없습니다.':'단체운동 기록이 없습니다.';
+    html+='<div class="empty"><div class="ei">&#x1F46F;</div>'+emptyMsg+'</div>';
   } else {
     gs.forEach(g=>{
       const members=(g.members||[]).map(id=>find(id)).filter(Boolean);
+      const isEnded=g.status==='ended';
+      const statusBadge=isEnded
+        ?'<span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#f3f4f6;color:#6b7280;margin-left:6px">종료</span>'
+        :'<span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#dcfce7;color:#166534;margin-left:6px">진행중</span>';
       html+='<div class="s-card"><div class="s-head"><div>'
         +'<span style="font-weight:700">'+g.date+'</span>'
         +(g.name?' <span style="font-weight:600;color:#2563eb;margin-left:6px">'+g.name+'</span>':'')
+        +statusBadge
         +(g.type?' <span class="badge b-green" style="margin-left:6px">'+g.type+'</span>':'')
         +(g.dur?' <span style="font-size:11px;color:#9ca3af;margin-left:4px">&#x23F1; '+g.dur+'분</span>':'')
         +' <span class="badge b-gray" style="margin-left:6px">'+members.length+'명 참가</span>'
         +'</div><div style="display:flex;gap:4px">'
+        +'<button class="btn btn-gray btn-sm" onclick="toggleGroupStatus(\''+g.id+'\')">'+(isEnded?'재개':'종료 처리')+'</button>'
         +'<button class="btn btn-blue btn-sm" onclick="navGroupDetail(\''+g.id+'\')">상세 보기</button>'
         +'<button class="btn btn-ghost btn-sm" onclick="openEditGroup(\''+g.id+'\')">수정</button>'
         +'<button class="btn btn-red btn-sm" onclick="delGroup(\''+g.id+'\')">삭제</button>'
@@ -2916,7 +2950,7 @@ function renderSessionLogMembers(selectedIds){
   const g=(DB.groupSessions||[]).find(x=>x.id===curGroupId);
   const el=document.getElementById('sl-members');
   if(!el||!g) return;
-  const members=(g.members||[]).map(id=>find(id)).filter(Boolean);
+  const members=(g.members||[]).map(id=>find(id)).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
   if(!members.length){el.innerHTML='<span style="color:#9ca3af;font-size:12px">등록된 회원이 없습니다.</span>';return;}
   el.innerHTML=members.map(c=>{
     const on=(selectedIds||[]).includes(c.id);
@@ -2962,7 +2996,7 @@ function openGroup(){
   editGroupId=null;
   document.getElementById('m-group-title').textContent='단체운동 기록';
   sv('gr-date',new Date().toISOString().slice(0,10));
-  sv('gr-name',''); sv('gr-dur',''); sv('gr-note','');
+  sv('gr-name',''); sv('gr-dur',''); sv('gr-note',''); sv('gr-status','active');
   populateSelects();
   renderGroupMembers([]);
   show('m-group');
@@ -2973,7 +3007,7 @@ function openEditGroup(id){
   const g=(DB.groupSessions||[]).find(x=>x.id===id);
   if(!g) return;
   document.getElementById('m-group-title').textContent='단체운동 수정';
-  sv('gr-date',g.date); sv('gr-name',g.name||''); sv('gr-dur',g.dur||''); sv('gr-note',g.note||'');
+  sv('gr-date',g.date); sv('gr-name',g.name||''); sv('gr-dur',g.dur||''); sv('gr-note',g.note||''); sv('gr-status',g.status||'active');
   populateSelects();
   sv('gr-type',g.type||'');
   renderGroupMembers(g.members||[]);
@@ -2990,7 +3024,7 @@ document.getElementById('btn-save-group').addEventListener('click', function(){
   const date=v('gr-date');
   if(!date){alert('날짜를 입력해주세요.');return;}
   const members=[...document.querySelectorAll('#gr-members input[type=checkbox]:checked')].map(cb=>cb.value);
-  const rec={date,name:v('gr-name'),type:v('gr-type'),dur:v('gr-dur'),note:v('gr-note'),members};
+  const rec={date,name:v('gr-name'),type:v('gr-type'),dur:v('gr-dur'),note:v('gr-note'),members,status:v('gr-status')||'active'};
   if(editGroupId){
     const idx=(DB.groupSessions||[]).findIndex(g=>g.id===editGroupId);
     if(idx>=0) DB.groupSessions[idx]={...DB.groupSessions[idx],...rec};
@@ -3017,15 +3051,19 @@ function pgGroupDetail(){
   h+='<div class="dhead">'
     +'<div class="av-lg" style="background:#7c3aed">&#x1F46F;</div>'
     +'<div class="dinfo" style="flex:1">'
-    +'<div style="display:flex;align-items:center;gap:10px"><h2>'+(g.name||'수업명 없음')+'</h2>'
-    +(g.type?'<span class="badge b-green">'+g.type+'</span>':'')+'</div>'
+    +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h2>'+(g.name||'수업명 없음')+'</h2>'
+    +(g.type?'<span class="badge b-green">'+g.type+'</span>':'')
+    +(g.status==='ended'?'<span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#f3f4f6;color:#6b7280">종료</span>':'<span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#dcfce7;color:#166534">진행중</span>')
+    +'</div>'
     +'<div class="sub">'+(g.dur?g.dur+'분':'')+((g.dur&&g.date)?' · ':'')+( g.date?'시작일 '+g.date:'')+'</div>'
     +'<div class="chips" style="margin-top:8px">'
     +members.map(m=>'<span onclick="nav(\'detail\',\''+m.id+'\')" class="chip" style="cursor:pointer;background:#dbeafe;color:#1e40af;display:inline-flex;align-items:center;gap:5px">'
       +'<span class="av" style="background:'+pal(m.name)+';width:18px;height:18px;font-size:8px">'+av2(m.name)+'</span>'+m.name+'</span>').join('')
     +'</div></div>'
+    +'<div style="display:flex;gap:6px">'
+    +'<button class="btn btn-gray btn-sm" onclick="toggleGroupStatus(\''+g.id+'\')">'+(g.status==='ended'?'&#x25B6; 재개':'&#x23F8; 종료 처리')+'</button>'
     +'<button class="btn btn-ghost btn-sm" onclick="openEditGroup(\''+g.id+'\')">&#x270F; 수정</button>'
-    +'</div>';
+    +'</div></div>';
 
   if(g.note) h+='<div class="info-box">&#x1F4DD; '+g.note+'</div>';
 
@@ -4190,16 +4228,30 @@ document.getElementById('sync-status').textContent = '⏳ 동기화 중...';
   if (!text || text === '[]' || text === '{"clients":[]}' || !text.startsWith('{')) {
     // 구글 시트가 비어있으면 현재 데이터 업로드
     await save();
+    _initialSyncDone = true;
     document.getElementById('sync-status').textContent = '✅ 데이터 업로드 완료!';
   } else {
-    DB = JSON.parse(text);
-    if(!DB.trainers) DB.trainers = [{id:'tr-default', name:(DB.admin&&DB.admin.name?DB.admin.name:'트레이너'), password:'0000', role:'admin', color:'#2563eb', active:true}];
-    localStorage.setItem('tc2', JSON.stringify(DB));
-    if(currentTrainer){
-      const found=(DB.trainers||[]).find(x=>x.id===currentTrainer.id&&x.active!==false);
-      if(found){ currentTrainer=found; updateAdminBar(); render(); }
-      else { currentTrainer=null; sessionStorage.removeItem('tc2-trainer'); showLoginScreen(); }
+    if (_savedDuringSync) {
+      // 동기화 중 가입·비밀번호 변경 등 로컬 저장이 발생 → 로컬 데이터가 최신
+      // 원격 구버전으로 덮어쓰지 않고 현재 로컬 데이터를 구글 시트에 재업로드
+      await save();
+    } else {
+      DB = JSON.parse(text);
+      if(!DB.trainers) DB.trainers = [{id:'tr-default', name:(DB.admin&&DB.admin.name?DB.admin.name:'트레이너'), password:'0000', role:'admin', color:'#2563eb', active:true}];
+      localStorage.setItem('tc2', JSON.stringify(DB));
+      if(currentTrainer){
+        const found=(DB.trainers||[]).find(x=>x.id===currentTrainer.id&&x.active!==false);
+        if(found){ currentTrainer=found; updateAdminBar(); render(); }
+        else {
+          // 구글 시트에 현재 트레이너 없음 → 복원 후 재저장
+          if(!DB.trainers) DB.trainers=[];
+          DB.trainers.push(currentTrainer);
+          await save();
+          updateAdminBar(); render();
+        }
+      }
     }
+    _initialSyncDone = true;
     // 미로그인 상태면 로그인 화면이 이미 표시 중이므로 입력값을 초기화하지 않음
     document.getElementById('sync-status').textContent = '✅ 동기화 완료';
   }
