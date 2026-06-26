@@ -413,7 +413,9 @@ tbody tr{cursor:pointer}
       <div class="fg"><label>몸무게 (kg)</label><input id="me-weight" type="number" step="0.1"></div>
       <div class="fg"><label>체지방률 (%)</label><input id="me-fat" type="number" step="0.1"></div>
       <div class="fg"><label>골격근량 (kg)</label><input id="me-muscle" type="number" step="0.1"></div>
-      <div class="fg"></div>
+      <div class="fg"><label>복부비만율 (%)</label><input id="me-abd-fat" type="number" step="0.1" placeholder="예: 85.0"></div>
+      <div class="fg"><label>내장지방레벨</label><input id="me-visceral" type="number" step="1" placeholder="예: 5"></div>
+      <div class="fg"><label>종합평점 (점)</label><input id="me-score" type="number" step="0.1" placeholder="예: 85.0"></div>
       <div id="me-calc-wrap" class="fg full" style="display:none">
         <div id="me-calc-box" style="background:#eff6ff;border-left:4px solid #2563eb;border-radius:8px;padding:11px 14px;font-size:12px"></div>
       </div>
@@ -1893,7 +1895,7 @@ function openMeasure(){
   editMeasureIdx = null;
   document.getElementById('m-measure-title').textContent = '신체 측정 기록';
   sv('me-date', new Date().toISOString().slice(0,10));
-  ['me-weight','me-fat','me-muscle','me-waist','me-chest','me-thigh','me-arm','me-grip-l','me-grip-r','me-knee-flex','me-knee-ext','me-sprint','me-agility','me-balance-l','me-balance-r','me-memo'].forEach(id=>sv(id,''));
+  ['me-weight','me-fat','me-muscle','me-abd-fat','me-visceral','me-score','me-waist','me-chest','me-thigh','me-arm','me-grip-l','me-grip-r','me-knee-flex','me-knee-ext','me-sprint','me-agility','me-balance-l','me-balance-r','me-memo'].forEach(id=>sv(id,''));
   updateMeasureCalc();
   show('m-measure');
 }
@@ -1903,7 +1905,9 @@ function openEditMeasure(idx){
   document.getElementById('m-measure-title').textContent = '측정 기록 수정';
   const m = find(curId).measures[idx];
   sv('me-date',m.date); sv('me-weight',m.weight); sv('me-fat',m.fat);
-  sv('me-muscle',m.muscle); sv('me-waist',m.waist); sv('me-chest',m.chest);
+  sv('me-muscle',m.muscle); sv('me-abd-fat',m.abd_fat);
+  sv('me-visceral',m.visceral); sv('me-score',m.score);
+  sv('me-waist',m.waist); sv('me-chest',m.chest);
   sv('me-thigh',m.thigh); sv('me-arm',m.arm); sv('me-grip-l',m.grip_l);
   sv('me-grip-r',m.grip_r); sv('me-knee-flex',m.knee_flex); sv('me-knee-ext',m.knee_ext);
   sv('me-sprint',m.sprint); sv('me-agility',m.agility);
@@ -1917,6 +1921,7 @@ document.getElementById('btn-save-measure').addEventListener('click', function()
   if(!date){ alert('날짜를 입력해주세요.'); return; }
   const c = find(curId);
   const rec = {date, weight:v('me-weight'), fat:v('me-fat'), muscle:v('me-muscle'),
+    abd_fat:v('me-abd-fat'), visceral:v('me-visceral'), score:v('me-score'),
     waist:v('me-waist'), chest:v('me-chest'), thigh:v('me-thigh'), arm:v('me-arm'),
     grip_l:v('me-grip-l'), grip_r:v('me-grip-r'), knee_flex:v('me-knee-flex'), knee_ext:v('me-knee-ext'), sprint:v('me-sprint'), agility:v('me-agility'),
     balance_l:v('me-balance-l'), balance_r:v('me-balance-r'), memo:v('me-memo')};
@@ -3951,10 +3956,13 @@ function measurePaneHTML(ms){
   let thead,tbody;
   if(curMeasureTab==='body'){
     const cl=find(curId);
-    thead='<tr><th>날짜</th><th>몸무게</th><th>체지방률</th><th>골격근량</th><th>BMI</th><th>기초대사량</th><th>체지방량</th><th>제지방량</th><th>메모</th><th></th></tr>';
+    thead='<tr><th>날짜</th><th>몸무게</th><th>체지방률</th><th>골격근량</th><th>복부비만율</th><th>내장지방</th><th>종합평점</th><th>BMI</th><th>기초대사량</th><th>체지방량</th><th>제지방량</th><th>메모</th><th></th></tr>';
     tbody=rows.map((m,ri)=>{
       const st=calcBodyStats(m.weight,m.fat,cl?.height,cl?.gender,cl?.birth);
       return '<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.weight,'kg')+'</td><td>'+v(m.fat,'%')+'</td><td>'+v(m.muscle,'kg')+'</td>'
+        +'<td>'+v(m.abd_fat,'%')+'</td>'
+        +'<td>'+v(m.visceral,'레벨')+'</td>'
+        +'<td>'+v(m.score,'점')+'</td>'
         +(st.bmi?'<td><b>'+st.bmi+'</b> <span style="font-size:10px;color:'+st.bmiCol+'">'+st.bmiCat+'</span></td>':'<td><span style="color:#d1d5db">-</span></td>')
         +(st.bmr?'<td><b>'+st.bmr.toLocaleString()+'</b><span style="font-size:10px;color:#9ca3af"> kcal</span></td>':'<td><span style="color:#d1d5db">-</span></td>')
         +(st.fatMass?'<td>'+v(st.fatMass,'kg')+'</td>':'<td><span style="color:#d1d5db">-</span></td>')
@@ -3971,8 +3979,8 @@ function measurePaneHTML(ms){
     thead='<tr><th>날짜</th><th>개수</th><th>반응시간</th><th>한발서기 왼발</th><th>한발서기 오른발</th><th>메모</th><th></th></tr>';
     tbody=rows.map((m,ri)=>'<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.sprint,'개')+'</td><td>'+v(m.agility,'초')+'</td><td>'+v(m.balance_l,'초')+'</td><td>'+v(m.balance_r,'초')+'</td><td style="font-size:11px;color:#9ca3af">'+(m.memo||'')+'</td>'+act(ri2idx(ri))+'</tr>').join('');
   } else {
-    thead='<tr><th>날짜</th><th>몸무게</th><th>체지방률</th><th>골격근량</th><th>허리</th><th>가슴</th><th>허벅지</th><th>팔</th><th>왼손악력</th><th>오른손악력</th><th>무릎굽힘</th><th>무릎폄</th><th>개수</th><th>반응시간</th><th>한발서기(좌)</th><th>한발서기(우)</th><th>메모</th><th></th></tr>';
-    tbody=rows.map((m,ri)=>'<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.weight,'kg')+'</td><td>'+v(m.fat,'%')+'</td><td>'+v(m.muscle,'kg')+'</td><td>'+v(m.waist,'cm')+'</td><td>'+v(m.chest,'cm')+'</td><td>'+v(m.thigh,'cm')+'</td><td>'+v(m.arm,'cm')+'</td><td>'+v(m.grip_l,'kg')+'</td><td>'+v(m.grip_r,'kg')+'</td><td>'+v(m.knee_flex,'kg')+'</td><td>'+v(m.knee_ext,'kg')+'</td><td>'+v(m.sprint,'개')+'</td><td>'+v(m.agility,'초')+'</td><td>'+v(m.balance_l,'초')+'</td><td>'+v(m.balance_r,'초')+'</td><td style="font-size:11px;color:#9ca3af">'+(m.memo||'')+'</td>'+act(ri2idx(ri))+'</tr>').join('');
+    thead='<tr><th>날짜</th><th>몸무게</th><th>체지방률</th><th>골격근량</th><th>복부비만율</th><th>내장지방</th><th>종합평점</th><th>허리</th><th>가슴</th><th>허벅지</th><th>팔</th><th>왼손악력</th><th>오른손악력</th><th>무릎굽힘</th><th>무릎폄</th><th>개수</th><th>반응시간</th><th>한발서기(좌)</th><th>한발서기(우)</th><th>메모</th><th></th></tr>';
+    tbody=rows.map((m,ri)=>'<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.weight,'kg')+'</td><td>'+v(m.fat,'%')+'</td><td>'+v(m.muscle,'kg')+'</td><td>'+v(m.abd_fat,'%')+'</td><td>'+v(m.visceral,'레벨')+'</td><td>'+v(m.score,'점')+'</td><td>'+v(m.waist,'cm')+'</td><td>'+v(m.chest,'cm')+'</td><td>'+v(m.thigh,'cm')+'</td><td>'+v(m.arm,'cm')+'</td><td>'+v(m.grip_l,'kg')+'</td><td>'+v(m.grip_r,'kg')+'</td><td>'+v(m.knee_flex,'kg')+'</td><td>'+v(m.knee_ext,'kg')+'</td><td>'+v(m.sprint,'개')+'</td><td>'+v(m.agility,'초')+'</td><td>'+v(m.balance_l,'초')+'</td><td>'+v(m.balance_r,'초')+'</td><td style="font-size:11px;color:#9ca3af">'+(m.memo||'')+'</td>'+act(ri2idx(ri))+'</tr>').join('');
   }
   return html+'<div style="overflow-x:auto"><table><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table></div>';
 }
@@ -4057,6 +4065,9 @@ function pgDetail(){
       +dcard('몸무게',ft?.weight,lt?.weight,'kg',true,'weight')
       +dcard('체지방률',ft?.fat,lt?.fat,'%',true,'fat')
       +dcard('골격근량',ft?.muscle,lt?.muscle,'kg',false,'muscle')
+      +dcard('복부비만율',ft?.abd_fat,lt?.abd_fat,'%',true,'abd_fat')
+      +dcard('내장지방레벨',ft?.visceral,lt?.visceral,'레벨',true,'visceral')
+      +dcard('종합평점',ft?.score,lt?.score,'점',false,'score')
       +dcard('허리 둘레',ft?.waist,lt?.waist,'cm',true,'waist')
       +dcard('왼손 악력',ft?.grip_l,lt?.grip_l,'kg',false,'grip_l')
       +dcard('오른손 악력',ft?.grip_r,lt?.grip_r,'kg',false,'grip_r')
@@ -4071,6 +4082,9 @@ function pgDetail(){
       {field:'weight',lbl:'몸무게 (kg)',unit:'kg',color:'#2563eb'},
       {field:'fat',lbl:'체지방률 (%)',unit:'%',color:'#ef4444'},
       {field:'muscle',lbl:'골격근량 (kg)',unit:'kg',color:'#16a34a'},
+      {field:'abd_fat',lbl:'복부비만율 (%)',unit:'%',color:'#f97316'},
+      {field:'visceral',lbl:'내장지방레벨',unit:'레벨',color:'#dc2626'},
+      {field:'score',lbl:'종합평점 (점)',unit:'점',color:'#0891b2'},
       {field:'waist',lbl:'허리 둘레 (cm)',unit:'cm',color:'#f59e0b'},
       {field:'grip_l',lbl:'왼손 악력 (kg)',unit:'kg',color:'#7c3aed'},
       {field:'grip_r',lbl:'오른손 악력 (kg)',unit:'kg',color:'#0891b2'},
