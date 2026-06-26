@@ -4199,9 +4199,8 @@ document.getElementById('sync-status').textContent = '⏳ 동기화 중...';
       const found=(DB.trainers||[]).find(x=>x.id===currentTrainer.id&&x.active!==false);
       if(found){ currentTrainer=found; updateAdminBar(); render(); }
       else { currentTrainer=null; sessionStorage.removeItem('tc2-trainer'); showLoginScreen(); }
-    } else {
-      showLoginScreen();
     }
+    // 미로그인 상태면 로그인 화면이 이미 표시 중이므로 입력값을 초기화하지 않음
     document.getElementById('sync-status').textContent = '✅ 동기화 완료';
   }
   setTimeout(()=>{ document.getElementById('sync-status').textContent = ''; }, 3000);
