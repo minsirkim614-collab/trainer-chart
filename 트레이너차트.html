@@ -2814,7 +2814,7 @@ function pgClients(q){
     +'</select>';
 
   return '<div class="searchbar">'
-    +'<input id="q" type="text" placeholder="이름, 연락처 또는 소속 검색..." value="'+q+'" oninput="refreshClients()">'
+    +'<input id="q" type="text" placeholder="이름, 연락처 또는 소속 검색..." value="'+q+'" oninput="if(!event.isComposing)refreshClients()" oncompositionend="refreshClients()" onkeydown="if(event.key===\'Enter\'&&!event.isComposing)refreshClients()">'
     +(orgs.length ? orgSel : '')
     +'<button class="btn btn-blue" onclick="openAdd()">+ 회원 추가</button></div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;align-items:center">'
