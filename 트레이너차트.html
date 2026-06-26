@@ -1353,10 +1353,8 @@ function saveTrainer(){
     DB.trainers.push({id:'tr-'+uid(),name,username,birth,phone,password:pw,role,color,active:true});
   }
   save(); editTrainerIdx=null;
-  document.getElementById('tr-edit-form').style.display='none';
-  clearTrainerForm();
   updateAdminBar();
-  renderAdminTrainers();
+  navAdminSection('trainers');
 }
 
 function cancelTrainerEdit(){
@@ -2780,7 +2778,12 @@ function pgDashboard(){
 let curOrgFilter = '', curClientSort = 'join_desc';
 
 function refreshClients(){
-  document.getElementById('page').innerHTML = pgClients(document.getElementById('q')?document.getElementById('q').value:'');
+  const inp = document.getElementById('q');
+  const q = inp ? inp.value : '';
+  const sel = inp ? inp.selectionStart : 0;
+  document.getElementById('page').innerHTML = pgClients(q);
+  const inp2 = document.getElementById('q');
+  if(inp2){ inp2.focus(); inp2.setSelectionRange(sel, sel); }
 }
 
 function pgClients(q){
