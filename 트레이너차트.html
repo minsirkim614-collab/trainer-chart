@@ -436,9 +436,8 @@ tbody tr{cursor:pointer}
       <div class="fg"><label>개수 (개)</label><input id="me-sprint" type="number" step="1" placeholder="예: 20"></div>
       <div class="fg"><label>반응시간 (초)</label><input id="me-agility" type="number" step="0.001" placeholder="예: 0.300"></div>
       <hr class="fdiv">
-      <div class="flbl">한발서기</div>
-      <div class="fg"><label>왼발 (초)</label><input id="me-balance-l" type="number" step="0.1" placeholder="예: 30.0"></div>
-      <div class="fg"><label>오른발 (초)</label><input id="me-balance-r" type="number" step="0.1" placeholder="예: 30.0"></div>
+      <div class="fg"><label>한발서기 (초)</label><input id="me-balance" type="number" step="0.1" placeholder="예: 30.0"></div>
+      <div class="fg"></div>
       <div class="fg full"><label>메모</label><textarea id="me-memo" rows="2"></textarea></div>
     </div>
   </div>
@@ -1021,21 +1020,21 @@ const find = id => DB.clients.find(c => c.id === id);
 // 노션 초기 측정 기록 주입 (최초 1회)
 (function(){
   const md = [
-    {name:'신복출', date:'2026-02-13', grip_l:16.8, grip_r:15.7, knee_ext:36.2, knee_flex:11.5, sprint:34, agility:0.414, balance_l:56.21},
-    {name:'황진복', date:'2026-02-13', grip_l:14.2, grip_r:14.6, knee_ext:20,   knee_flex:8.6,  sprint:31, agility:0.449, balance_l:3.51},
-    {name:'심경순', date:'2026-02-13', grip_l:17,   grip_r:18.2, knee_ext:27.6, knee_flex:9.7,  sprint:32, agility:0.457, balance_l:42.55},
-    {name:'정문주', date:'2026-02-13', grip_l:18.3, grip_r:21.3, knee_ext:28.2, knee_flex:7.8,  sprint:29, agility:0.505, balance_l:1},
-    {name:'이옥수', date:'2026-02-13', grip_l:20.1, grip_r:22.1, knee_ext:29,   knee_flex:10.6, sprint:36, agility:0.403, balance_l:27.35},
-    {name:'박원영', date:'2026-02-13', grip_l:17.1, grip_r:16.7, knee_ext:25,   knee_flex:12,   sprint:32, agility:0.454, balance_l:7.11},
-    {name:'최순옥', date:'2026-02-13', grip_l:14.1, grip_r:17.1, knee_ext:29.1, knee_flex:10.7, sprint:32, agility:0.434, balance_l:16.95},
-    {name:'함춘례', date:'2026-02-13', grip_l:17.3, grip_r:18.2, knee_ext:33.6, knee_flex:9.6,  sprint:33, agility:0.426, balance_l:23.66},
-    {name:'최태순', date:'2026-02-13', grip_l:16.7, grip_r:17,   knee_ext:19.8, knee_flex:9.9,  sprint:29, agility:0.524, balance_l:22.5},
-    {name:'최주숙', date:'2026-02-13', grip_l:23.8, grip_r:23.7, knee_ext:37.1, knee_flex:9.7,  sprint:33, agility:0.413, balance_l:13.45},
-    {name:'함순봉', date:'2026-02-13', grip_l:15.4, grip_r:20.7, knee_ext:26.5, knee_flex:14.4, sprint:32, agility:0.48,  balance_l:29.59},
-    {name:'조순이', date:'2026-02-13', grip_l:15.7, grip_r:14.6, knee_ext:31.2, knee_flex:9.6,  sprint:32, agility:0.431, balance_l:8.9},
-    {name:'김품자', date:'2026-02-13', grip_l:0,    grip_r:15.9, knee_ext:24.4, knee_flex:7.4,  sprint:'', agility:'',    balance_l:''},
-    {name:'박금술', date:'2026-02-13', grip_l:17.7, grip_r:13.3, knee_ext:19.9, knee_flex:8,    sprint:31, agility:0.476, balance_l:4.91},
-    {name:'정금주', date:'2026-02-13', grip_l:20.1, grip_r:12.8, knee_ext:33.9, knee_flex:15.8, sprint:29, agility:0.508, balance_l:60},
+    {name:'신복출', date:'2026-02-13', grip_l:16.8, grip_r:15.7, knee_ext:36.2, knee_flex:11.5, sprint:34, agility:0.414, balance:56.21},
+    {name:'황진복', date:'2026-02-13', grip_l:14.2, grip_r:14.6, knee_ext:20,   knee_flex:8.6,  sprint:31, agility:0.449, balance:3.51},
+    {name:'심경순', date:'2026-02-13', grip_l:17,   grip_r:18.2, knee_ext:27.6, knee_flex:9.7,  sprint:32, agility:0.457, balance:42.55},
+    {name:'정문주', date:'2026-02-13', grip_l:18.3, grip_r:21.3, knee_ext:28.2, knee_flex:7.8,  sprint:29, agility:0.505, balance:1},
+    {name:'이옥수', date:'2026-02-13', grip_l:20.1, grip_r:22.1, knee_ext:29,   knee_flex:10.6, sprint:36, agility:0.403, balance:27.35},
+    {name:'박원영', date:'2026-02-13', grip_l:17.1, grip_r:16.7, knee_ext:25,   knee_flex:12,   sprint:32, agility:0.454, balance:7.11},
+    {name:'최순옥', date:'2026-02-13', grip_l:14.1, grip_r:17.1, knee_ext:29.1, knee_flex:10.7, sprint:32, agility:0.434, balance:16.95},
+    {name:'함춘례', date:'2026-02-13', grip_l:17.3, grip_r:18.2, knee_ext:33.6, knee_flex:9.6,  sprint:33, agility:0.426, balance:23.66},
+    {name:'최태순', date:'2026-02-13', grip_l:16.7, grip_r:17,   knee_ext:19.8, knee_flex:9.9,  sprint:29, agility:0.524, balance:22.5},
+    {name:'최주숙', date:'2026-02-13', grip_l:23.8, grip_r:23.7, knee_ext:37.1, knee_flex:9.7,  sprint:33, agility:0.413, balance:13.45},
+    {name:'함순봉', date:'2026-02-13', grip_l:15.4, grip_r:20.7, knee_ext:26.5, knee_flex:14.4, sprint:32, agility:0.48,  balance:29.59},
+    {name:'조순이', date:'2026-02-13', grip_l:15.7, grip_r:14.6, knee_ext:31.2, knee_flex:9.6,  sprint:32, agility:0.431, balance:8.9},
+    {name:'김품자', date:'2026-02-13', grip_l:0,    grip_r:15.9, knee_ext:24.4, knee_flex:7.4,  sprint:'', agility:'',    balance:''},
+    {name:'박금술', date:'2026-02-13', grip_l:17.7, grip_r:13.3, knee_ext:19.9, knee_flex:8,    sprint:31, agility:0.476, balance:4.91},
+    {name:'정금주', date:'2026-02-13', grip_l:20.1, grip_r:12.8, knee_ext:33.9, knee_flex:15.8, sprint:29, agility:0.508, balance:60},
   ];
   let changed = false;
   md.forEach(m => {
@@ -1046,7 +1045,7 @@ const find = id => DB.clients.find(c => c.id === id);
         c.measures.push({
           date:m.date, weight:'', fat:'', muscle:'', waist:'', chest:'', thigh:'', arm:'',
           grip_l:m.grip_l, grip_r:m.grip_r, knee_flex:m.knee_flex, knee_ext:m.knee_ext,
-          sprint:m.sprint, agility:m.agility, balance_l:m.balance_l, balance_r:'', memo:'초기 측정'
+          sprint:m.sprint, agility:m.agility, balance:m.balance, memo:'초기 측정'
         });
         changed = true;
       }
@@ -1895,7 +1894,7 @@ function openMeasure(){
   editMeasureIdx = null;
   document.getElementById('m-measure-title').textContent = '신체 측정 기록';
   sv('me-date', new Date().toISOString().slice(0,10));
-  ['me-weight','me-fat','me-muscle','me-abd-fat','me-visceral','me-score','me-waist','me-chest','me-thigh','me-arm','me-grip-l','me-grip-r','me-knee-flex','me-knee-ext','me-sprint','me-agility','me-balance-l','me-balance-r','me-memo'].forEach(id=>sv(id,''));
+  ['me-weight','me-fat','me-muscle','me-abd-fat','me-visceral','me-score','me-waist','me-chest','me-thigh','me-arm','me-grip-l','me-grip-r','me-knee-flex','me-knee-ext','me-sprint','me-agility','me-balance','me-memo'].forEach(id=>sv(id,''));
   updateMeasureCalc();
   show('m-measure');
 }
@@ -1911,7 +1910,7 @@ function openEditMeasure(idx){
   sv('me-thigh',m.thigh); sv('me-arm',m.arm); sv('me-grip-l',m.grip_l);
   sv('me-grip-r',m.grip_r); sv('me-knee-flex',m.knee_flex); sv('me-knee-ext',m.knee_ext);
   sv('me-sprint',m.sprint); sv('me-agility',m.agility);
-  sv('me-balance-l',m.balance_l); sv('me-balance-r',m.balance_r); sv('me-memo',m.memo);
+  sv('me-balance',m.balance); sv('me-memo',m.memo);
   updateMeasureCalc();
   show('m-measure');
 }
@@ -1924,7 +1923,7 @@ document.getElementById('btn-save-measure').addEventListener('click', function()
     abd_fat:v('me-abd-fat'), visceral:v('me-visceral'), score:v('me-score'),
     waist:v('me-waist'), chest:v('me-chest'), thigh:v('me-thigh'), arm:v('me-arm'),
     grip_l:v('me-grip-l'), grip_r:v('me-grip-r'), knee_flex:v('me-knee-flex'), knee_ext:v('me-knee-ext'), sprint:v('me-sprint'), agility:v('me-agility'),
-    balance_l:v('me-balance-l'), balance_r:v('me-balance-r'), memo:v('me-memo')};
+    balance:v('me-balance'), memo:v('me-memo')};
   if(editMeasureIdx !== null){
     c.measures[editMeasureIdx] = rec;
   } else {
@@ -3976,11 +3975,11 @@ function measurePaneHTML(ms){
     thead='<tr><th>날짜</th><th>왼손 악력</th><th>오른손 악력</th><th>무릎 굽힘</th><th>무릎 폄</th><th>메모</th><th></th></tr>';
     tbody=rows.map((m,ri)=>'<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.grip_l,'kg')+'</td><td>'+v(m.grip_r,'kg')+'</td><td>'+v(m.knee_flex,'kg')+'</td><td>'+v(m.knee_ext,'kg')+'</td><td style="font-size:11px;color:#9ca3af">'+(m.memo||'')+'</td>'+act(ri2idx(ri))+'</tr>').join('');
   } else if(curMeasureTab==='speed'){
-    thead='<tr><th>날짜</th><th>개수</th><th>반응시간</th><th>한발서기 왼발</th><th>한발서기 오른발</th><th>메모</th><th></th></tr>';
-    tbody=rows.map((m,ri)=>'<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.sprint,'개')+'</td><td>'+v(m.agility,'초')+'</td><td>'+v(m.balance_l,'초')+'</td><td>'+v(m.balance_r,'초')+'</td><td style="font-size:11px;color:#9ca3af">'+(m.memo||'')+'</td>'+act(ri2idx(ri))+'</tr>').join('');
+    thead='<tr><th>날짜</th><th>개수</th><th>반응시간</th><th>한발서기</th><th>메모</th><th></th></tr>';
+    tbody=rows.map((m,ri)=>'<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.sprint,'개')+'</td><td>'+v(m.agility,'초')+'</td><td>'+v(m.balance,'초')+'</td><td style="font-size:11px;color:#9ca3af">'+(m.memo||'')+'</td>'+act(ri2idx(ri))+'</tr>').join('');
   } else {
-    thead='<tr><th>날짜</th><th>몸무게</th><th>체지방률</th><th>골격근량</th><th>복부비만율</th><th>내장지방</th><th>종합평점</th><th>허리</th><th>가슴</th><th>허벅지</th><th>팔</th><th>왼손악력</th><th>오른손악력</th><th>무릎굽힘</th><th>무릎폄</th><th>개수</th><th>반응시간</th><th>한발서기(좌)</th><th>한발서기(우)</th><th>메모</th><th></th></tr>';
-    tbody=rows.map((m,ri)=>'<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.weight,'kg')+'</td><td>'+v(m.fat,'%')+'</td><td>'+v(m.muscle,'kg')+'</td><td>'+v(m.abd_fat,'%')+'</td><td>'+v(m.visceral,'레벨')+'</td><td>'+v(m.score,'점')+'</td><td>'+v(m.waist,'cm')+'</td><td>'+v(m.chest,'cm')+'</td><td>'+v(m.thigh,'cm')+'</td><td>'+v(m.arm,'cm')+'</td><td>'+v(m.grip_l,'kg')+'</td><td>'+v(m.grip_r,'kg')+'</td><td>'+v(m.knee_flex,'kg')+'</td><td>'+v(m.knee_ext,'kg')+'</td><td>'+v(m.sprint,'개')+'</td><td>'+v(m.agility,'초')+'</td><td>'+v(m.balance_l,'초')+'</td><td>'+v(m.balance_r,'초')+'</td><td style="font-size:11px;color:#9ca3af">'+(m.memo||'')+'</td>'+act(ri2idx(ri))+'</tr>').join('');
+    thead='<tr><th>날짜</th><th>몸무게</th><th>체지방률</th><th>골격근량</th><th>복부비만율</th><th>내장지방</th><th>종합평점</th><th>허리</th><th>가슴</th><th>허벅지</th><th>팔</th><th>왼손악력</th><th>오른손악력</th><th>무릎굽힘</th><th>무릎폄</th><th>개수</th><th>반응시간</th><th>한발서기</th><th>메모</th><th></th></tr>';
+    tbody=rows.map((m,ri)=>'<tr style="cursor:default"><td style="font-weight:600">'+m.date+'</td><td>'+v(m.weight,'kg')+'</td><td>'+v(m.fat,'%')+'</td><td>'+v(m.muscle,'kg')+'</td><td>'+v(m.abd_fat,'%')+'</td><td>'+v(m.visceral,'레벨')+'</td><td>'+v(m.score,'점')+'</td><td>'+v(m.waist,'cm')+'</td><td>'+v(m.chest,'cm')+'</td><td>'+v(m.thigh,'cm')+'</td><td>'+v(m.arm,'cm')+'</td><td>'+v(m.grip_l,'kg')+'</td><td>'+v(m.grip_r,'kg')+'</td><td>'+v(m.knee_flex,'kg')+'</td><td>'+v(m.knee_ext,'kg')+'</td><td>'+v(m.sprint,'개')+'</td><td>'+v(m.agility,'초')+'</td><td>'+v(m.balance,'초')+'</td><td style="font-size:11px;color:#9ca3af">'+(m.memo||'')+'</td>'+act(ri2idx(ri))+'</tr>').join('');
   }
   return html+'<div style="overflow-x:auto"><table><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table></div>';
 }
@@ -4075,8 +4074,7 @@ function pgDetail(){
       +dcard('무릎 폄',ft?.knee_ext,lt?.knee_ext,'kg',false,'knee_ext')
       +dcard('개수',ft?.sprint,lt?.sprint,'개',false,'sprint')
       +dcard('반응시간',ft?.agility,lt?.agility,'초',true,'agility')
-      +(()=>{ const a=ms.find(m=>m.balance_l), b=[...ms].reverse().find(m=>m.balance_l); return dcard('한발서기 왼발',a?.balance_l,b?.balance_l,'초',false,'balance_l'); })()
-      +(()=>{ const a=ms.find(m=>m.balance_r), b=[...ms].reverse().find(m=>m.balance_r); return dcard('한발서기 오른발',a?.balance_r,b?.balance_r,'초',false,'balance_r'); })()
+      +(()=>{ const a=ms.find(m=>m.balance), b=[...ms].reverse().find(m=>m.balance); return dcard('한발서기',a?.balance,b?.balance,'초',false,'balance'); })()
       +'</div><div style="margin-top:12px;font-size:12px;color:#9ca3af">항목을 클릭하면 날짜별 상세 추이를 볼 수 있습니다 · 기간: '+ft.date+' → '+lt.date+' ('+ms.length+'회 측정)</div>';
     const _cDefs=[
       {field:'weight',lbl:'몸무게 (kg)',unit:'kg',color:'#2563eb'},
@@ -4092,15 +4090,14 @@ function pgDetail(){
       {field:'knee_ext',lbl:'무릎 폄 (kg)',unit:'kg',color:'#d97706'},
       {field:'sprint',lbl:'개수 (개)',unit:'개',color:'#f43f5e'},
       {field:'agility',lbl:'반응시간 (초)',unit:'초',color:'#14b8a6',decimals:3},
-      {field:'balance_l',lbl:'한발서기 왼발 (초)',unit:'초',color:'#f97316'},
-      {field:'balance_r',lbl:'한발서기 오른발 (초)',unit:'초',color:'#ec4899'},
+      {field:'balance',lbl:'한발서기 (초)',unit:'초',color:'#f97316'},
     ];
     let _ch='';
     _cDefs.forEach(({field,lbl:cl,unit:cu,color,decimals})=>{
       const _pts=ms.filter(m=>m[field]!==''&&m[field]!==undefined&&m[field]!==null).map(m=>({date:m.date,val:m[field]}));
       if(_pts.length>=2){
         _ch+='<div style="margin-bottom:20px"><div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:6px">'+cl+'</div><div style="background:#f9fafb;border-radius:10px;padding:10px 8px 4px">'+makeSVGChart(_pts,cu,color,decimals)+'</div></div>';
-      } else if(_pts.length===1 && (field==='balance_l'||field==='balance_r')){
+      } else if(_pts.length===1 && field==='balance'){
         _ch+='<div style="margin-bottom:20px"><div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:6px">'+cl+'</div>'
           +'<div style="background:#f9fafb;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px">'
           +'<div style="width:12px;height:12px;border-radius:50%;background:'+color+';flex-shrink:0"></div>'
@@ -4213,7 +4210,7 @@ function showMeasureDetail(field, lbl, unit, lowerIsBetter){
   if(!ms.length){
     html = '<div class="empty"><div class="ei">&#x1F4CA;</div>데이터가 없습니다.</div>';
   } else {
-    const _clr={weight:'#2563eb',fat:'#ef4444',muscle:'#16a34a',waist:'#f59e0b',chest:'#06b6d4',thigh:'#8b5cf6',arm:'#ec4899',grip_l:'#7c3aed',grip_r:'#0891b2',knee_flex:'#db2777',knee_ext:'#d97706',sprint:'#f43f5e',agility:'#14b8a6',balance_l:'#f97316',balance_r:'#ec4899'}[field]||'#2563eb';
+    const _clr={weight:'#2563eb',fat:'#ef4444',muscle:'#16a34a',waist:'#f59e0b',chest:'#06b6d4',thigh:'#8b5cf6',arm:'#ec4899',grip_l:'#7c3aed',grip_r:'#0891b2',knee_flex:'#db2777',knee_ext:'#d97706',sprint:'#f43f5e',agility:'#14b8a6',balance:'#f97316'}[field]||'#2563eb';
     const dec = field==='agility' ? 3 : 1;
     const _pts=ms.map(m=>({date:m.date,val:m[field]}));
     html='<div style="background:#f9fafb;border-radius:10px;padding:12px 10px 4px;margin-bottom:16px">'+makeSVGChart(_pts,unit,_clr,dec)+'</div>';
