@@ -493,6 +493,7 @@ tbody tr{cursor:pointer}
           <button class="btn btn-gray btn-sm" onclick="mmAddTextBlock()">+ 텍스트</button>
           <label for="mm-img-input" class="btn btn-gray btn-sm" style="cursor:pointer">+ 사진</label>
           <input id="mm-img-input" type="file" accept="image/*" multiple style="display:none" onchange="mmAddImages(this)">
+          <button class="btn btn-gray btn-sm" onclick="mmAddVideoBlock()">+ 동영상</button>
         </div>
       </div>
     </div>
@@ -2420,11 +2421,25 @@ function mmAddImages(input){
 function mmAddTextBlock(){
   mmBlocks.push({type:'text', value:''});
   renderMmBlocks();
-  // focus the new textarea
   setTimeout(function(){
     const tas = document.querySelectorAll('#mm-blocks textarea');
     if(tas.length) tas[tas.length-1].focus();
   }, 50);
+}
+
+function mmAddVideoBlock(){
+  mmBlocks.push({type:'video', url:''});
+  renderMmBlocks();
+  setTimeout(function(){
+    const ins = document.querySelectorAll('#mm-blocks .mm-video-url');
+    if(ins.length) ins[ins.length-1].focus();
+  }, 50);
+}
+
+function getYtId(url){
+  if(!url) return '';
+  const m = url.match(/(?:youtu\.be\/|[?&]v=|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : '';
 }
 
 function mmRemoveBlock(i){
@@ -2489,6 +2504,20 @@ function renderMmBlocks(){
         +'</div>'
         +moveBtns+delBtn+'</div>';
     }
+    if(b.type==='video'){
+      const ytId = getYtId(b.url||'');
+      const thumb = ytId
+        ? '<img src="https://img.youtube.com/vi/'+ytId+'/mqdefault.jpg" style="width:107px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;flex-shrink:0">'
+        : '<div style="width:107px;height:60px;background:#f3f4f6;border-radius:6px;border:1px solid #e5e7eb;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:11px">&#x25B6; 미리보기</div>';
+      return '<div '+dragAttrs+' style="display:flex;gap:10px;align-items:center;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px">'
+        +'<span style="font-size:14px;color:#9ca3af;cursor:grab;flex-shrink:0" title="드래그하여 이동">&#x2630;</span>'
+        +thumb
+        +'<div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">'
+        +'<span style="font-size:12px;color:#6b7280">동영상 URL (YouTube / MP4)</span>'
+        +'<input class="mm-video-url" value="'+escMmText(b.url||'')+'" oninput="mmBlocks['+i+'].url=this.value" onblur="renderMmBlocks()" placeholder="https://youtu.be/... 또는 영상 URL" style="padding:6px 9px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:13px;outline:none;width:100%;box-sizing:border-box">'
+        +'</div>'
+        +moveBtns+delBtn+'</div>';
+    }
     return '';
   }).join('');
 }
@@ -2520,6 +2549,18 @@ function renderManualBlocksHtml(d, type, id){
       const maxW = sizeMap[b.size||'full']||'100%';
       return '<div style="margin:10px 0">'
         +'<img src="'+b.src+'" onclick="openImgViewer(\''+type+'\',\''+id+'\','+ii+')" style="max-width:'+maxW+';width:100%;border-radius:8px;border:1px solid #e5e7eb;cursor:pointer;transition:opacity .15s;display:block" onmouseover="this.style.opacity=\'.85\'" onmouseout="this.style.opacity=\'1\'">'
+        +'</div>';
+    }
+    if(b.type==='video'){
+      if(!b.url) return '';
+      const ytId = getYtId(b.url);
+      if(ytId){
+        return '<div style="margin:12px 0;position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;border:1px solid #e5e7eb">'
+          +'<iframe src="https://www.youtube.com/embed/'+ytId+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:10px" allowfullscreen loading="lazy"></iframe>'
+          +'</div>';
+      }
+      return '<div style="margin:12px 0">'
+        +'<video src="'+b.url+'" controls style="max-width:100%;width:100%;border-radius:10px;border:1px solid #e5e7eb;display:block"></video>'
         +'</div>';
     }
     return '';
@@ -2565,7 +2606,7 @@ document.getElementById('btn-save-manual').addEventListener('click',function(){
   if(!title){alert('제목을 입력해주세요.');return;}
   const arr=curManualType==='measure'?DB.measureManual:DB.exerciseManual;
   const isNew = editManualIdx===null;
-  const blocks=mmBlocks.filter(b=>b.type==='image'||(b.type==='text'&&b.value.trim()));
+  const blocks=mmBlocks.filter(b=>b.type==='image'||(b.type==='text'&&b.value.trim())||(b.type==='video'&&(b.url||'').trim()));
   const rec={id:(isNew?uid():(arr[editManualIdx]||{}).id||uid()),title,cat:(document.getElementById('mm-cat').value||'').trim(),blocks,content:blocks.filter(b=>b.type==='text').map(b=>b.value).join('\n\n'),images:blocks.filter(b=>b.type==='image').map(b=>b.src)};
   if(!isNew) arr[editManualIdx]=rec;
   else {
