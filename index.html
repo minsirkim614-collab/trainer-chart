@@ -938,8 +938,10 @@ let _supaUser = null;
 
 const save = async () => {
   localStorage.setItem('tc2', JSON.stringify(DB));
+  const _ts = new Date().toISOString();
+  localStorage.setItem('tc2_updated_at', _ts);
   try {
-    await supa.from('center_data').upsert({ id: 'main', db: DB, updated_at: new Date().toISOString() });
+    await supa.from('center_data').upsert({ id: 'main', db: DB, updated_at: _ts });
   } catch(e) { console.warn('저장 실패:', e); }
 };
 const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
@@ -4240,11 +4242,17 @@ document.getElementById('sync-status').textContent = '⏳ 연결 중...';
   const { data: { session } } = await supa.auth.getSession();
   if (session) {
     _supaUser = session.user;
-    const { data } = await supa.from('center_data').select('db').eq('id','main').single();
+    const { data } = await supa.from('center_data').select('db, updated_at').eq('id','main').single();
+    const _localTs = localStorage.getItem('tc2_updated_at');
     if (data?.db && Object.keys(data.db).length) {
-      DB = data.db;
-      if(!DB.trainers) DB.trainers = [];
-      localStorage.setItem('tc2', JSON.stringify(DB));
+      if (!_localTs || new Date(data.updated_at) > new Date(_localTs)) {
+        DB = data.db;
+        if(!DB.trainers) DB.trainers = [];
+        localStorage.setItem('tc2', JSON.stringify(DB));
+        localStorage.setItem('tc2_updated_at', data.updated_at);
+      } else if (new Date(data.updated_at) < new Date(_localTs)) {
+        await save();
+      }
     } else {
       await save();
     }
