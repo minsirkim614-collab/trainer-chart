@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>트레이닝 차트</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI','Malgun Gothic',sans-serif;background:#e8ecf0;color:#2d3561;display:flex;min-height:100vh}
@@ -492,6 +493,7 @@ tbody tr{cursor:pointer}
           <button class="btn btn-gray btn-sm" onclick="mmAddTextBlock()">+ 텍스트</button>
           <label for="mm-img-input" class="btn btn-gray btn-sm" style="cursor:pointer">+ 사진</label>
           <input id="mm-img-input" type="file" accept="image/*" multiple style="display:none" onchange="mmAddImages(this)">
+          <button class="btn btn-gray btn-sm" onclick="mmAddVideoBlock()">+ 동영상</button>
         </div>
       </div>
     </div>
@@ -783,8 +785,8 @@ tbody tr{cursor:pointer}
     <div id="login-panel">
       <div style="font-size:18px;font-weight:800;color:#2d3561;margin-bottom:20px">로그인</div>
       <div style="margin-bottom:14px">
-        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">아이디</div>
-        <input id="login-id" type="text" class="login-inp" placeholder="이름을 입력해주세요" onkeydown="if(event.key==='Enter')document.getElementById('login-pw').focus()">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">이메일</div>
+        <input id="login-id" type="email" class="login-inp" placeholder="example@email.com" onkeydown="if(event.key==='Enter')document.getElementById('login-pw').focus()">
       </div>
       <div style="margin-bottom:18px">
         <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">비밀번호</div>
@@ -793,9 +795,7 @@ tbody tr{cursor:pointer}
       <div id="login-error" style="color:#ef4444;font-size:13px;margin-bottom:12px;min-height:20px;text-align:center"></div>
       <button class="login-btn" onclick="doLogin()">로그인</button>
       <div style="text-align:center;margin-top:18px;font-size:13px;color:#8892b0">
-        <button onclick="showFindIdPanel()" style="background:none;border:none;color:#6366f1;font-weight:600;cursor:pointer;font-size:13px;font-family:inherit;padding:0">아이디 찾기</button>
-        <span style="margin:0 8px;color:#c9d0e0">·</span>
-        <button onclick="showChPwPanel()" style="background:none;border:none;color:#6366f1;font-weight:600;cursor:pointer;font-size:13px;font-family:inherit;padding:0">비밀번호 변경</button>
+        <button onclick="showChPwPanel()" style="background:none;border:none;color:#6366f1;font-weight:600;cursor:pointer;font-size:13px;font-family:inherit;padding:0">비밀번호 재설정</button>
         <span style="margin:0 8px;color:#c9d0e0">·</span>
         <button onclick="showSignUpPanel()" style="background:none;border:none;color:#6366f1;font-weight:600;cursor:pointer;font-size:13px;font-family:inherit;padding:0">회원가입</button>
       </div>
@@ -806,11 +806,11 @@ tbody tr{cursor:pointer}
       <div style="font-size:18px;font-weight:800;color:#2d3561;margin-bottom:20px">회원가입</div>
       <div style="margin-bottom:14px">
         <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">이름 *</div>
-        <input id="su-name" type="text" class="login-inp" placeholder="실명 (예: 홍길동)" onkeydown="if(event.key==='Enter')document.getElementById('su-username').focus()">
+        <input id="su-name" type="text" class="login-inp" placeholder="실명 (예: 홍길동)" onkeydown="if(event.key==='Enter')document.getElementById('su-email').focus()">
       </div>
       <div style="margin-bottom:14px">
-        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">아이디 *</div>
-        <input id="su-username" type="text" class="login-inp" placeholder="로그인에 사용할 아이디" onkeydown="if(event.key==='Enter')document.getElementById('su-birth').focus()">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">이메일 *</div>
+        <input id="su-email" type="email" class="login-inp" placeholder="example@email.com" onkeydown="if(event.key==='Enter')document.getElementById('su-birth').focus()">
       </div>
       <div style="margin-bottom:14px">
         <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">생년월일</div>
@@ -855,28 +855,16 @@ tbody tr{cursor:pointer}
       </div>
     </div>
 
-    <!-- 비밀번호 변경 패널 -->
+    <!-- 비밀번호 재설정 패널 -->
     <div id="chpw-panel" style="display:none">
-      <div style="font-size:18px;font-weight:800;color:#2d3561;margin-bottom:6px">비밀번호 변경</div>
-      <div style="font-size:13px;color:#8892b0;margin-bottom:20px">아이디와 이름을 입력하여 본인 확인 후 비밀번호를 변경합니다.</div>
-      <div style="margin-bottom:14px">
-        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">아이디</div>
-        <input id="cp-id" type="text" class="login-inp" placeholder="아이디 입력" onkeydown="if(event.key==='Enter')document.getElementById('cp-name').focus()">
-      </div>
-      <div style="margin-bottom:14px">
-        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">이름</div>
-        <input id="cp-name" type="text" class="login-inp" placeholder="가입 시 등록한 이름" onkeydown="if(event.key==='Enter')document.getElementById('cp-pw').focus()">
-      </div>
-      <div style="margin-bottom:14px">
-        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">새 비밀번호</div>
-        <input id="cp-pw" type="password" class="login-inp" placeholder="새 비밀번호 (4자 이상)" onkeydown="if(event.key==='Enter')document.getElementById('cp-pw2').focus()">
-      </div>
+      <div style="font-size:18px;font-weight:800;color:#2d3561;margin-bottom:6px">비밀번호 재설정</div>
+      <div style="font-size:13px;color:#8892b0;margin-bottom:20px">가입 시 사용한 이메일로 재설정 링크를 발송합니다.</div>
       <div style="margin-bottom:18px">
-        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">새 비밀번호 확인</div>
-        <input id="cp-pw2" type="password" class="login-inp" placeholder="새 비밀번호 재입력" onkeydown="if(event.key==='Enter')doChPw()">
+        <div style="font-size:12px;font-weight:600;color:#8892b0;margin-bottom:6px">이메일</div>
+        <input id="cp-email" type="email" class="login-inp" placeholder="가입 시 사용한 이메일" onkeydown="if(event.key==='Enter')doChPw()">
       </div>
       <div id="cp-error" style="color:#ef4444;font-size:13px;margin-bottom:12px;min-height:20px;text-align:center"></div>
-      <button class="login-btn" onclick="doChPw()">비밀번호 변경</button>
+      <button class="login-btn" onclick="doChPw()">재설정 링크 발송</button>
       <div style="text-align:center;margin-top:18px;font-size:13px;color:#8892b0">
         <button onclick="showLoginPanel()" style="background:none;border:none;color:#6366f1;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit;padding:0">로그인으로 돌아가기</button>
       </div>
@@ -942,43 +930,20 @@ if(!DB.exercises) DB.exercises = [
   {name:'러닝머신',cat:'유산소'},{name:'사이클',cat:'유산소'},{name:'로잉머신',cat:'유산소'},{name:'버피',cat:'유산소'},{name:'줄넘기',cat:'유산소'},{name:'스텝박스',cat:'유산소'},
   {name:'햄스트링 스트레칭',cat:'스트레칭'},{name:'고관절 스트레칭',cat:'스트레칭'},{name:'어깨 스트레칭',cat:'스트레칭'},{name:'폼롤러',cat:'스트레칭'},
 ];
-// ── Google Sheets 연동 ──────────────────────────────────────
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzmBbbPSh-j-rnR41jgmHAhU7Oh05t5JD1pRYUDYHWfevdeWYrmfz0dOoQe7XbJ7tbpdQ/exec';
-
-let _initialSyncDone = false, _savedDuringSync = false;
+// ── Supabase 연동 ──────────────────────────────────────────
+const SUPABASE_URL = 'https://oolovxuxfxmialpsojzi.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_BQnmED1t3IOOtJuLoCbC7Q_GHknHN2M';
+const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let _supaUser = null;
 
 const save = async () => {
-  if (!_initialSyncDone) _savedDuringSync = true; // 초기 동기화 중 로컬 저장 발생 기록
-  localStorage.setItem('tc2', JSON.stringify(DB)); // 로컬 백업
+  localStorage.setItem('tc2', JSON.stringify(DB));
+  const _ts = new Date().toISOString();
+  localStorage.setItem('tc2_updated_at', _ts);
   try {
-    await fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'save', payload: DB })
-    });
+    await supa.from('center_data').upsert({ id: 'main', db: DB, updated_at: _ts });
   } catch(e) { console.warn('저장 실패:', e); }
 };
-
-async function loadFromSheets() {
-  try {
-    const res = await fetch(GAS_URL + '?action=load');
-    const text = await res.text();
-    if (text && text !== '[]' && text.startsWith('{')) {
-      const remote = JSON.parse(text);
-      DB = remote;
-      if(!DB.admin) DB.admin = {name:'트레이너', center:'', phone:'', email:'', memo:''};
-      if(!DB.orgs) DB.orgs = [];
-      if(!DB.exTypes) DB.exTypes = ['근력 트레이닝','유산소','스트레칭/이동성','체형 교정','재활','복합'];
-      if(!DB.groupSessions) DB.groupSessions = [];
-      if(!DB.events) DB.events = [];
-      localStorage.setItem('tc2', JSON.stringify(DB));
-      render();
-      document.getElementById('sync-status').textContent = '✅ 동기화 완료';
-      setTimeout(()=>{ document.getElementById('sync-status').textContent = ''; }, 2000);
-    }
-  } catch(e) { console.warn('불러오기 실패:', e); }
-}
 const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
 const find = id => DB.clients.find(c => c.id === id);
 
@@ -1111,15 +1076,7 @@ function updateAdminBar(){
 
 // ── 로그인 ────────────────────────────────────────────────────
 function checkLogin(){
-  const saved = sessionStorage.getItem('tc2-trainer');
-  if(saved){
-    try{
-      const parsed = JSON.parse(saved);
-      const found = (DB.trainers||[]).find(x=>x.id===parsed.id&&x.active!==false);
-      if(found){ currentTrainer=found; showApp(); return; }
-    }catch(e){}
-  }
-  showLoginScreen();
+  // Supabase 세션은 시작 IIFE에서 처리
 }
 
 function showLoginScreen(){
@@ -1144,7 +1101,7 @@ function showSignUpPanel(){
   document.getElementById('login-panel').style.display='none';
   document.getElementById('signup-panel').style.display='';
   document.getElementById('su-name').value='';
-  document.getElementById('su-username').value='';
+  document.getElementById('su-email').value='';
   document.getElementById('su-birth').value='';
   document.getElementById('su-phone').value='';
   document.getElementById('su-pw').value='';
@@ -1165,64 +1122,26 @@ function showLoginPanel(){
   document.getElementById('login-pw').value='';
 }
 
-function showFindIdPanel(){
-  document.getElementById('login-panel').style.display='none';
-  document.getElementById('signup-panel').style.display='none';
-  const cp=document.getElementById('chpw-panel');
-  if(cp) cp.style.display='none';
-  document.getElementById('fi-name').value='';
-  document.getElementById('fi-phone').value='';
-  document.getElementById('fi-result').textContent='';
-  document.getElementById('fi-result').style.color='';
-  document.getElementById('findid-panel').style.display='';
-  document.getElementById('fi-name').focus();
-}
-
-function doFindId(){
-  const name=(document.getElementById('fi-name').value||'').trim();
-  const phone=(document.getElementById('fi-phone').value||'').trim();
-  const resEl=document.getElementById('fi-result');
-  if(!name){ resEl.style.color='#ef4444'; resEl.textContent='이름을 입력해주세요.'; return; }
-  if(!phone){ resEl.style.color='#ef4444'; resEl.textContent='연락처를 입력해주세요.'; return; }
-  const found=(DB.trainers||[]).find(t=>t.name===name&&t.phone===phone&&t.active!==false);
-  if(!found){ resEl.style.color='#ef4444'; resEl.textContent='일치하는 계정을 찾을 수 없습니다.'; return; }
-  const displayId = found.username || found.name;
-  resEl.style.color='';
-  resEl.innerHTML='<div style="background:#f0f4ff;border:1.5px solid #6366f1;border-radius:10px;padding:12px 16px;margin-bottom:4px"><div style="font-size:11px;color:#8892b0;margin-bottom:4px">회원님의 아이디</div><div style="font-size:17px;font-weight:800;color:#2d3561;letter-spacing:0.5px">'+displayId+'</div></div>';
-}
+function showFindIdPanel(){ showChPwPanel(); }
 
 function showChPwPanel(){
   document.getElementById('login-panel').style.display='none';
   document.getElementById('signup-panel').style.display='none';
-  const fp=document.getElementById('findid-panel');
-  if(fp) fp.style.display='none';
-  document.getElementById('cp-id').value='';
-  document.getElementById('cp-name').value='';
-  document.getElementById('cp-pw').value='';
-  document.getElementById('cp-pw2').value='';
+  document.getElementById('cp-email').value='';
   document.getElementById('cp-error').textContent='';
+  document.getElementById('cp-error').style.color='#ef4444';
   document.getElementById('chpw-panel').style.display='';
-  document.getElementById('cp-id').focus();
+  document.getElementById('cp-email').focus();
 }
 
-function doChPw(){
-  const id=(document.getElementById('cp-id').value||'').trim();
-  const name=(document.getElementById('cp-name').value||'').trim();
-  const pw=document.getElementById('cp-pw').value;
-  const pw2=document.getElementById('cp-pw2').value;
+async function doChPw(){
+  const email=(document.getElementById('cp-email').value||'').trim();
   const errEl=document.getElementById('cp-error');
-  if(!id){ errEl.textContent='아이디를 입력해주세요.'; return; }
-  if(!name){ errEl.textContent='이름을 입력해주세요.'; return; }
-  if(!pw){ errEl.textContent='새 비밀번호를 입력해주세요.'; return; }
-  if(pw.length<4){ errEl.textContent='비밀번호는 4자 이상이어야 합니다.'; return; }
-  if(pw!==pw2){ errEl.textContent='새 비밀번호가 일치하지 않습니다.'; return; }
-  const trainer=(DB.trainers||[]).find(t=>(t.username||t.name)===id&&t.name===name&&t.active!==false);
-  if(!trainer){ errEl.textContent='아이디 또는 이름이 일치하지 않습니다.'; return; }
-  trainer.password=pw;
-  save();
+  if(!email){ errEl.textContent='이메일을 입력해주세요.'; return; }
+  const { error } = await supa.auth.resetPasswordForEmail(email);
+  if(error){ errEl.textContent=error.message; return; }
   errEl.style.color='#22c55e';
-  errEl.textContent='비밀번호가 성공적으로 변경되었습니다.';
-  setTimeout(()=>{ errEl.style.color=''; showLoginPanel(); }, 1500);
+  errEl.textContent='재설정 링크를 이메일로 발송했습니다.';
 }
 
 function suPhoneInput(el){
@@ -1232,29 +1151,28 @@ function suPhoneInput(el){
   else el.value=v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11);
 }
 
-function doSignUp(){
+async function doSignUp(){
   const name=(document.getElementById('su-name').value||'').trim();
-  const username=(document.getElementById('su-username').value||'').trim();
+  const email=(document.getElementById('su-email').value||'').trim();
   const birth=(document.getElementById('su-birth').value||'').trim();
   const phone=(document.getElementById('su-phone').value||'').trim();
   const pw=document.getElementById('su-pw').value;
   const pw2=document.getElementById('su-pw2').value;
   const errEl=document.getElementById('su-error');
   if(!name){ errEl.textContent='이름을 입력해주세요.'; return; }
-  if(!username){ errEl.textContent='아이디를 입력해주세요.'; return; }
-  if(!pw){ errEl.textContent='비밀번호를 입력해주세요.'; return; }
+  if(!email){ errEl.textContent='이메일을 입력해주세요.'; return; }
   if(pw.length<4){ errEl.textContent='비밀번호는 4자 이상이어야 합니다.'; return; }
   if(pw!==pw2){ errEl.textContent='비밀번호가 일치하지 않습니다.'; return; }
-  if((DB.trainers||[]).some(t=>(t.username||t.name)===username)){ errEl.textContent='이미 사용 중인 아이디입니다.'; return; }
+  errEl.style.color='#8892b0'; errEl.textContent='가입 중...';
+  const { data, error } = await supa.auth.signUp({ email, password: pw, options: { data: { name } } });
+  if(error){ errEl.style.color='#ef4444'; errEl.textContent=error.message; return; }
+  const newT = { id: uid(), name, email, birth, phone, role: (DB.trainers||[]).length === 0 ? 'admin' : 'trainer', color:'#6366f1', active:true };
   if(!DB.trainers) DB.trainers=[];
-  const trainer={id:'tr-'+uid(), name, username, birth, phone, password:pw, role:'trainer', color:'#6366f1', active:true};
-  DB.trainers.push(trainer);
-  save();
-  currentTrainer=trainer;
-  sessionStorage.setItem('tc2-trainer', JSON.stringify({id:trainer.id}));
-  curPage='dashboard';
-  showApp();
-  showToast(name+'님, 가입을 환영합니다!', 'success');
+  DB.trainers.push(newT);
+  await save();
+  errEl.style.color='#22c55e';
+  errEl.textContent='가입 완료! 로그인해주세요.';
+  setTimeout(()=>showLoginPanel(), 1500);
 }
 
 function showApp(){
@@ -1263,25 +1181,35 @@ function showApp(){
   render();
 }
 
-function doLogin(){
-  const name = (document.getElementById('login-id').value||'').trim();
+async function doLogin(){
+  const email = (document.getElementById('login-id').value||'').trim();
   const pw = document.getElementById('login-pw').value;
   const errEl = document.getElementById('login-error');
-  if(!name){ errEl.textContent='아이디를 입력해주세요.'; return; }
+  if(!email){ errEl.textContent='이메일을 입력해주세요.'; return; }
   if(!pw){ errEl.textContent='비밀번호를 입력해주세요.'; return; }
-  const trainer = (DB.trainers||[]).find(t=>(t.username||t.name)===name&&t.active!==false);
-  if(!trainer){ errEl.textContent='아이디 또는 비밀번호가 올바르지 않습니다.'; return; }
-  if(trainer.password !== pw){ errEl.textContent='아이디 또는 비밀번호가 올바르지 않습니다.'; return; }
-  currentTrainer = trainer;
-  sessionStorage.setItem('tc2-trainer', JSON.stringify({id:trainer.id}));
-  curPage='dashboard';
+  errEl.textContent='로그인 중...';
+  const { data, error } = await supa.auth.signInWithPassword({ email, password: pw });
+  if(error){ errEl.textContent='이메일 또는 비밀번호가 올바르지 않습니다.'; return; }
+  _supaUser = data.user;
+  const found = (DB.trainers||[]).find(t => t.email === email && t.active !== false);
+  if(found){
+    currentTrainer = found;
+  } else {
+    const newT = { id: uid(), name: data.user.user_metadata?.name || email, email, role: (DB.trainers||[]).length === 0 ? 'admin' : 'trainer', color: '#6366f1', active: true };
+    if(!DB.trainers) DB.trainers = [];
+    DB.trainers.push(newT);
+    currentTrainer = newT;
+    await save();
+  }
+  curPage = 'dashboard';
   showApp();
 }
 
-function doLogout(){
+async function doLogout(){
   if(!confirm('로그아웃하시겠습니까?')) return;
+  await supa.auth.signOut();
+  _supaUser = null;
   currentTrainer = null;
-  sessionStorage.removeItem('tc2-trainer');
   showLoginScreen();
 }
 
@@ -2495,11 +2423,25 @@ function mmAddImages(input){
 function mmAddTextBlock(){
   mmBlocks.push({type:'text', value:''});
   renderMmBlocks();
-  // focus the new textarea
   setTimeout(function(){
     const tas = document.querySelectorAll('#mm-blocks textarea');
     if(tas.length) tas[tas.length-1].focus();
   }, 50);
+}
+
+function mmAddVideoBlock(){
+  mmBlocks.push({type:'video', url:''});
+  renderMmBlocks();
+  setTimeout(function(){
+    const ins = document.querySelectorAll('#mm-blocks .mm-video-url');
+    if(ins.length) ins[ins.length-1].focus();
+  }, 50);
+}
+
+function getYtId(url){
+  if(!url) return '';
+  const m = url.match(/(?:youtu\.be\/|[?&]v=|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : '';
 }
 
 function mmRemoveBlock(i){
@@ -2564,6 +2506,20 @@ function renderMmBlocks(){
         +'</div>'
         +moveBtns+delBtn+'</div>';
     }
+    if(b.type==='video'){
+      const ytId = getYtId(b.url||'');
+      const thumb = ytId
+        ? '<img src="https://img.youtube.com/vi/'+ytId+'/mqdefault.jpg" style="width:107px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;flex-shrink:0">'
+        : '<div style="width:107px;height:60px;background:#f3f4f6;border-radius:6px;border:1px solid #e5e7eb;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:11px">&#x25B6; 미리보기</div>';
+      return '<div '+dragAttrs+' style="display:flex;gap:10px;align-items:center;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px">'
+        +'<span style="font-size:14px;color:#9ca3af;cursor:grab;flex-shrink:0" title="드래그하여 이동">&#x2630;</span>'
+        +thumb
+        +'<div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">'
+        +'<span style="font-size:12px;color:#6b7280">동영상 URL (YouTube / MP4)</span>'
+        +'<input class="mm-video-url" value="'+escMmText(b.url||'')+'" oninput="mmBlocks['+i+'].url=this.value" onblur="renderMmBlocks()" placeholder="https://youtu.be/... 또는 영상 URL" style="padding:6px 9px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:13px;outline:none;width:100%;box-sizing:border-box">'
+        +'</div>'
+        +moveBtns+delBtn+'</div>';
+    }
     return '';
   }).join('');
 }
@@ -2595,6 +2551,18 @@ function renderManualBlocksHtml(d, type, id){
       const maxW = sizeMap[b.size||'full']||'100%';
       return '<div style="margin:10px 0">'
         +'<img src="'+b.src+'" onclick="openImgViewer(\''+type+'\',\''+id+'\','+ii+')" style="max-width:'+maxW+';width:100%;border-radius:8px;border:1px solid #e5e7eb;cursor:pointer;transition:opacity .15s;display:block" onmouseover="this.style.opacity=\'.85\'" onmouseout="this.style.opacity=\'1\'">'
+        +'</div>';
+    }
+    if(b.type==='video'){
+      if(!b.url) return '';
+      const ytId = getYtId(b.url);
+      if(ytId){
+        return '<div style="margin:12px 0;position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;border:1px solid #e5e7eb">'
+          +'<iframe src="https://www.youtube.com/embed/'+ytId+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:10px" allowfullscreen loading="lazy"></iframe>'
+          +'</div>';
+      }
+      return '<div style="margin:12px 0">'
+        +'<video src="'+b.url+'" controls style="max-width:100%;width:100%;border-radius:10px;border:1px solid #e5e7eb;display:block"></video>'
         +'</div>';
     }
     return '';
@@ -2640,7 +2608,7 @@ document.getElementById('btn-save-manual').addEventListener('click',function(){
   if(!title){alert('제목을 입력해주세요.');return;}
   const arr=curManualType==='measure'?DB.measureManual:DB.exerciseManual;
   const isNew = editManualIdx===null;
-  const blocks=mmBlocks.filter(b=>b.type==='image'||(b.type==='text'&&b.value.trim()));
+  const blocks=mmBlocks.filter(b=>b.type==='image'||(b.type==='text'&&b.value.trim())||(b.type==='video'&&(b.url||'').trim()));
   const rec={id:(isNew?uid():(arr[editManualIdx]||{}).id||uid()),title,cat:(document.getElementById('mm-cat').value||'').trim(),blocks,content:blocks.filter(b=>b.type==='text').map(b=>b.value).join('\n\n'),images:blocks.filter(b=>b.type==='image').map(b=>b.src)};
   if(!isNew) arr[editManualIdx]=rec;
   else {
@@ -3324,8 +3292,8 @@ function pgGroupDetail(){
     }).sort((a,b)=>b.rate-a.rate);
     h+='<div style="padding:4px 0">';
     stats.forEach(s=>{
-      const col=s.rate>=80?'#16a34a':s.rate>=60?'#d97706':'#ef4444';
-      const bg=s.rate>=80?'#dcfce7':s.rate>=60?'#fef9c3':'#fee2e2';
+      const col=s.rate>=96?'#2563eb':s.rate>=80?'#16a34a':s.rate>=45?'#d97706':s.rate>=10?'#ef4444':'#6b7280';
+      const bg=s.rate>=96?'#dbeafe':s.rate>=80?'#dcfce7':s.rate>=45?'#fef9c3':s.rate>=10?'#fee2e2':'#f3f4f6';
       h+='<div style="display:flex;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid #f3f4f6">'
         +'<span onclick="nav(\'detail\',\''+s.m.id+'\')" style="display:inline-flex;align-items:center;gap:7px;cursor:pointer;min-width:90px;font-weight:600;font-size:13px">'
         +'<span class="av" style="background:'+pal(s.m.name)+';width:28px;height:28px;font-size:11px;flex-shrink:0">'+av2(s.m.name)+'</span>'
@@ -3339,7 +3307,7 @@ function pgGroupDetail(){
         +'<div style="width:'+s.rate+'%;height:100%;background:'+col+';border-radius:99px;transition:width .4s"></div>'
         +'</div></div>'
         +'<span style="background:'+bg+';color:'+col+';border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;min-width:44px;text-align:center">'
-        +(s.rate>=80?'우수':s.rate>=60?'보통':'미흡')+'</span>'
+        +(s.rate>=96?'최우수':s.rate>=80?'우수':s.rate>=45?'보통':s.rate>=10?'미흡':'정지')+'</span>'
         +'</div>';
     });
     h+='</div>';
@@ -4269,42 +4237,41 @@ function delDiet(idx){ if(!confirm('삭제?'))return; find(curId).diets.splice(i
 
 // ── 시작 ──────────────────────────────────────────────────────
 checkLogin();
-// 최초 실행 시 데이터를 구글 시트에 저장 후 불러오기
-document.getElementById('sync-status').textContent = '⏳ 동기화 중...';
+document.getElementById('sync-status').textContent = '⏳ 연결 중...';
 (async () => {
-  const res = await fetch(GAS_URL + '?action=load').catch(()=>null);
-  const text = res ? await res.text().catch(()=>'') : '';
-  if (!text || text === '[]' || text === '{"clients":[]}' || !text.startsWith('{')) {
-    // 구글 시트가 비어있으면 현재 데이터 업로드
-    await save();
-    _initialSyncDone = true;
-    document.getElementById('sync-status').textContent = '✅ 데이터 업로드 완료!';
-  } else {
-    if (_savedDuringSync) {
-      // 동기화 중 가입·비밀번호 변경 등 로컬 저장이 발생 → 로컬 데이터가 최신
-      // 원격 구버전으로 덮어쓰지 않고 현재 로컬 데이터를 구글 시트에 재업로드
-      await save();
-    } else {
-      DB = JSON.parse(text);
-      if(!DB.trainers) DB.trainers = [{id:'tr-default', name:(DB.admin&&DB.admin.name?DB.admin.name:'트레이너'), password:'0000', role:'admin', color:'#2563eb', active:true}];
-      localStorage.setItem('tc2', JSON.stringify(DB));
-      if(currentTrainer){
-        const found=(DB.trainers||[]).find(x=>x.id===currentTrainer.id&&x.active!==false);
-        if(found){ currentTrainer=found; updateAdminBar(); render(); }
-        else {
-          // 구글 시트에 현재 트레이너 없음 → 복원 후 재저장
-          if(!DB.trainers) DB.trainers=[];
-          DB.trainers.push(currentTrainer);
-          await save();
-          updateAdminBar(); render();
-        }
+  const { data: { session } } = await supa.auth.getSession();
+  if (session) {
+    _supaUser = session.user;
+    const { data } = await supa.from('center_data').select('db, updated_at').eq('id','main').single();
+    const _localTs = localStorage.getItem('tc2_updated_at');
+    if (data?.db && Object.keys(data.db).length) {
+      if (!_localTs || new Date(data.updated_at) > new Date(_localTs)) {
+        DB = data.db;
+        if(!DB.trainers) DB.trainers = [];
+        localStorage.setItem('tc2', JSON.stringify(DB));
+        localStorage.setItem('tc2_updated_at', data.updated_at);
+      } else if (new Date(data.updated_at) < new Date(_localTs)) {
+        await save();
       }
+    } else {
+      await save();
     }
-    _initialSyncDone = true;
-    // 미로그인 상태면 로그인 화면이 이미 표시 중이므로 입력값을 초기화하지 않음
-    document.getElementById('sync-status').textContent = '✅ 동기화 완료';
+    const found = (DB.trainers||[]).find(t => t.email === _supaUser.email && t.active !== false);
+    if (found) {
+      currentTrainer = found;
+      showApp();
+    } else {
+      const newT = { id: uid(), name: _supaUser.user_metadata?.name || _supaUser.email, email: _supaUser.email, role: (DB.trainers||[]).length === 0 ? 'admin' : 'trainer', color: '#6366f1', active: true };
+      if(!DB.trainers) DB.trainers = [];
+      DB.trainers.push(newT);
+      currentTrainer = newT;
+      await save();
+      showApp();
+    }
+  } else {
+    showLoginScreen();
   }
-  setTimeout(()=>{ document.getElementById('sync-status').textContent = ''; }, 3000);
+  document.getElementById('sync-status').textContent = '';
 })();
 
 // ── 게시판 ───────────────────────────────────────────────────
