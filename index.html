@@ -950,8 +950,21 @@ const save = async () => {
   localStorage.setItem('tc2_updated_at', _ts);
   try {
     await supa.from('center_data').upsert({ id: 'main', db: DB, updated_at: _ts });
+    maybeBackup(_ts);
   } catch(e) { console.warn('저장 실패:', e); }
 };
+
+// 15분에 한 번꼴로 별도 백업 테이블(center_data_backups)에 스냅샷을 남김.
+// 테이블이 아직 없으면(관리자가 SQL 세팅 전) 조용히 실패하고 무시함 — 정상 저장 흐름을 막지 않음.
+const BACKUP_INTERVAL_MS = 15 * 60 * 1000;
+function maybeBackup(ts){
+  const last = localStorage.getItem('tc2_last_backup_at');
+  if (last && (new Date(ts) - new Date(last)) < BACKUP_INTERVAL_MS) return;
+  localStorage.setItem('tc2_last_backup_at', ts);
+  supa.from('center_data_backups').insert({ db: DB, created_at: ts }).then(({error}) => {
+    if(error) console.warn('백업 저장 실패(무시):', error);
+  });
+}
 const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
 const find = id => DB.clients.find(c => c.id === id);
 
@@ -1378,7 +1391,7 @@ function renderAdminSubSidebar(){
   ssb.dataset.type = 'admin';
   if(titleEl) titleEl.textContent = '관리자 설정';
   if(addBtn){
-    if(curAdminSection==='profile'||curAdminSection==='colors'){ addBtn.style.display='none'; }
+    if(curAdminSection==='profile'||curAdminSection==='colors'||curAdminSection==='backups'){ addBtn.style.display='none'; }
     else if(curAdminSection==='trainers'){ addBtn.style.display=''; addBtn.setAttribute('onclick','openAddTrainer()'); }
     else{ addBtn.style.display=''; addBtn.setAttribute('onclick','focusAdminAddInput()'); }
   }
@@ -1392,6 +1405,7 @@ function renderAdminSubSidebar(){
   ];
   if(!currentTrainer||currentTrainer.role==='admin'){
     items.splice(1,0,{k:'trainers',icon:'&#x1F464;',label:'트레이너 관리'});
+    items.push({k:'backups',icon:'💾',label:'데이터 백업'});
   }
   list.innerHTML = items.map(it=>
     '<div class="ssb-item'+(curAdminSection===it.k?' on':'')+'" onclick="navAdminSection(\''+it.k+'\')" style="display:flex;align-items:center;gap:9px">'
@@ -1415,7 +1429,46 @@ function initAdminSection(){
   else if(curAdminSection==='foods') renderAdminFoods();
   else if(curAdminSection==='exercises') renderAdminExercises();
   else if(curAdminSection==='trainers') renderAdminTrainers();
+  else if(curAdminSection==='backups') renderAdminBackups();
   else renderAdminLists();
+}
+
+async function renderAdminBackups(){
+  const el = document.getElementById('admin-backups-list');
+  if(!el) return;
+  const { data, error } = await supa.from('center_data_backups').select('id, created_at').order('created_at', {ascending:false}).limit(20);
+  if(error){ el.innerHTML = '<div style="color:#dc2626;font-size:13px">백업 목록을 불러오지 못했습니다: '+error.message+'<br><span style="color:#9ca3af">Supabase에 center_data_backups 테이블이 아직 없을 수 있습니다.</span></div>'; return; }
+  if(!data || !data.length){ el.innerHTML = '<div style="color:#9ca3af;font-size:13px">아직 백업이 없습니다. "지금 백업"을 눌러 첫 백업을 만들어보세요.</div>'; return; }
+  el.innerHTML = data.map(b=>{
+    const label = new Date(b.created_at).toLocaleString('ko-KR');
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1.5px solid #e2e5ee;border-radius:10px;margin-bottom:8px">'
+      +'<span style="font-size:13px;color:#2d3561">'+label+'</span>'
+      +'<button class="btn btn-ghost btn-sm" onclick="restoreBackup('+b.id+')">이 시점으로 복원</button>'
+      +'</div>';
+  }).join('');
+}
+
+async function backupNow(){
+  const ts = new Date().toISOString();
+  const { error } = await supa.from('center_data_backups').insert({ db: DB, created_at: ts });
+  if(error){ alert('백업 실패: '+error.message); return; }
+  localStorage.setItem('tc2_last_backup_at', ts);
+  alert('지금 시점으로 백업했습니다.');
+  renderAdminBackups();
+}
+
+async function restoreBackup(id){
+  if(!confirm('이 백업 시점으로 되돌리면 지금 서버에 있는 데이터를 덮어씁니다. 계속할까요?')) return;
+  const { data, error } = await supa.from('center_data_backups').select('db').eq('id', id).single();
+  if(error || !data){ alert('백업을 불러오지 못했습니다: '+(error?error.message:'')); return; }
+  DB = data.db;
+  const ts = new Date().toISOString();
+  localStorage.setItem('tc2', JSON.stringify(DB));
+  localStorage.setItem('tc2_updated_at', ts);
+  const { error: upErr } = await supa.from('center_data').upsert({ id: 'main', db: DB, updated_at: ts });
+  if(upErr){ alert('복원 저장 실패: '+upErr.message); return; }
+  alert('복원되었습니다. 새로고침합니다.');
+  location.reload();
 }
 
 function focusAdminAddInput(){
@@ -2745,6 +2798,14 @@ function pgAdmin(){
         +'</div>'
       ).join('')
       +'</div></div>';
+  }
+  if(curAdminSection==='backups'){
+    return '<div class="card">'
+      +'<div class="card-head" style="margin-bottom:16px"><span class="card-title">&#x1F4BE; 데이터 백업</span>'
+      +'<button class="btn btn-blue btn-sm" onclick="backupNow()">지금 백업</button></div>'
+      +'<div class="info-box" style="margin-bottom:14px;font-size:12px">저장할 때마다 최소 15분 간격으로 자동 백업됩니다. 문제가 생기면 아래 목록에서 이전 시점으로 되돌릴 수 있습니다.</div>'
+      +'<div id="admin-backups-list"><div style="color:#9ca3af;font-size:13px">불러오는 중...</div></div>'
+      +'</div>';
   }
   return '';
 }
