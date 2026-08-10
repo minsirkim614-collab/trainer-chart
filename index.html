@@ -1172,12 +1172,12 @@ async function doSignUp(){
   if(pw.length<4){ errEl.textContent='비밀번호는 4자 이상이어야 합니다.'; return; }
   if(pw!==pw2){ errEl.textContent='비밀번호가 일치하지 않습니다.'; return; }
   errEl.style.color='#8892b0'; errEl.textContent='가입 중...';
-  const { data, error } = await supa.auth.signUp({ email, password: pw, options: { data: { name } } });
+  const { data, error } = await supa.auth.signUp({ email, password: pw, options: { data: { name, birth, phone } } });
   if(error){ errEl.style.color='#ef4444'; errEl.textContent=error.message; return; }
-  const newT = { id: uid(), name, email, birth, phone, role: (DB.trainers||[]).length === 0 ? 'admin' : 'trainer', color:'#6366f1', active:true };
-  if(!DB.trainers) DB.trainers=[];
-  DB.trainers.push(newT);
-  await save();
+  // 트레이너 레코드는 이 기기의 로컬(초기 시드) DB에 바로 추가하지 않는다.
+  // 이 시점엔 서버의 실제 데이터를 아직 불러온 적이 없어서, 여기서 save()하면
+  // 낡은 로컬 DB로 서버 전체를 덮어써버린다. 실제 레코드 생성은 doLogin()에서,
+  // 서버 DB를 동기화한 뒤에 한다.
   errEl.style.color='#22c55e';
   errEl.textContent='가입 완료! 로그인해주세요.';
   setTimeout(()=>showLoginPanel(), 1500);
@@ -1199,11 +1199,26 @@ async function doLogin(){
   const { data, error } = await supa.auth.signInWithPassword({ email, password: pw });
   if(error){ errEl.textContent='이메일 또는 비밀번호가 올바르지 않습니다.'; return; }
   _supaUser = data.user;
+  // 로그인 성공 직후, 이 기기가 아직 한 번도 서버 DB를 받아온 적이 없을 수 있으므로
+  // (새 기기는 로컬 초기 시드 데이터로 시작함) 트레이너를 추가/저장하기 전에
+  // 서버의 최신 DB를 먼저 반영한다. 이걸 건너뛰면 낡은 로컬 DB로 서버 데이터를
+  // 통째로 덮어쓰는 사고가 난다.
+  try {
+    const { data: server } = await supa.from('center_data').select('db, updated_at').eq('id','main').single();
+    const _localTs = localStorage.getItem('tc2_updated_at');
+    if (server?.db && Object.keys(server.db).length && (!_localTs || new Date(server.updated_at) > new Date(_localTs))) {
+      DB = server.db;
+      if(!DB.trainers) DB.trainers = [];
+      localStorage.setItem('tc2', JSON.stringify(DB));
+      localStorage.setItem('tc2_updated_at', server.updated_at);
+    }
+  } catch(e) { console.warn('서버 DB 동기화 실패, 로컬 DB로 계속 진행:', e); }
   const found = (DB.trainers||[]).find(t => t.email === email && t.active !== false);
   if(found){
     currentTrainer = found;
   } else {
-    const newT = { id: uid(), name: data.user.user_metadata?.name || email, email, role: (DB.trainers||[]).length === 0 ? 'admin' : 'trainer', color: '#6366f1', active: true };
+    const meta = data.user.user_metadata || {};
+    const newT = { id: uid(), name: meta.name || email, email, birth: meta.birth || '', phone: meta.phone || '', role: (DB.trainers||[]).length === 0 ? 'admin' : 'trainer', color: '#6366f1', active: true };
     if(!DB.trainers) DB.trainers = [];
     DB.trainers.push(newT);
     currentTrainer = newT;
@@ -4269,7 +4284,8 @@ document.getElementById('sync-status').textContent = '⏳ 연결 중...';
       currentTrainer = found;
       showApp();
     } else {
-      const newT = { id: uid(), name: _supaUser.user_metadata?.name || _supaUser.email, email: _supaUser.email, role: (DB.trainers||[]).length === 0 ? 'admin' : 'trainer', color: '#6366f1', active: true };
+      const _meta = _supaUser.user_metadata || {};
+      const newT = { id: uid(), name: _meta.name || _supaUser.email, email: _supaUser.email, birth: _meta.birth || '', phone: _meta.phone || '', role: (DB.trainers||[]).length === 0 ? 'admin' : 'trainer', color: '#6366f1', active: true };
       if(!DB.trainers) DB.trainers = [];
       DB.trainers.push(newT);
       currentTrainer = newT;
