@@ -3292,8 +3292,8 @@ function pgGroupDetail(){
     }).sort((a,b)=>b.rate-a.rate);
     h+='<div style="padding:4px 0">';
     stats.forEach(s=>{
-      const col=s.rate>=80?'#16a34a':s.rate>=60?'#d97706':'#ef4444';
-      const bg=s.rate>=80?'#dcfce7':s.rate>=60?'#fef9c3':'#fee2e2';
+      const col=s.rate>=96?'#2563eb':s.rate>=80?'#16a34a':s.rate>=45?'#d97706':s.rate>=10?'#ef4444':'#6b7280';
+      const bg=s.rate>=96?'#dbeafe':s.rate>=80?'#dcfce7':s.rate>=45?'#fef9c3':s.rate>=10?'#fee2e2':'#f3f4f6';
       h+='<div style="display:flex;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid #f3f4f6">'
         +'<span onclick="nav(\'detail\',\''+s.m.id+'\')" style="display:inline-flex;align-items:center;gap:7px;cursor:pointer;min-width:90px;font-weight:600;font-size:13px">'
         +'<span class="av" style="background:'+pal(s.m.name)+';width:28px;height:28px;font-size:11px;flex-shrink:0">'+av2(s.m.name)+'</span>'
@@ -3307,7 +3307,7 @@ function pgGroupDetail(){
         +'<div style="width:'+s.rate+'%;height:100%;background:'+col+';border-radius:99px;transition:width .4s"></div>'
         +'</div></div>'
         +'<span style="background:'+bg+';color:'+col+';border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;min-width:44px;text-align:center">'
-        +(s.rate>=80?'우수':s.rate>=60?'보통':'미흡')+'</span>'
+        +(s.rate>=96?'최우수':s.rate>=80?'우수':s.rate>=45?'보통':s.rate>=10?'미흡':'정지')+'</span>'
         +'</div>';
     });
     h+='</div>';
